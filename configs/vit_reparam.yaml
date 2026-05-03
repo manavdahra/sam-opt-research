@@ -1,0 +1,21 @@
+model: vit_b_32
+epochs: 50
+batch_size: 128
+lr: 0.01
+momentum: 0.9
+weight_decay: 5.0e-4
+seeds: [0, 1, 2]
+data_dir: ./data
+results_dir: ./results/reparam
+num_workers: 4
+resize: 224
+pretrained: true
+
+# Fixed rho for the reparametrisation experiment
+rho: 0.05
+asam_rho: 0.5
+asam_eta: 0.01
+
+alpha_values: [0.1, 0.5, 1.0, 2.0, 10.0]
+
+optimizers: [sgd, sam, asam, msam]

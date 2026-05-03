@@ -1,0 +1,16 @@
+[project]
+name = "sam-opt-research"
+version = "0.1.0"
+description = "Benchmarking SAM, ASAM, and M-SAM optimizer variants"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "numpy>=1.26.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.66.0",
+    "datasets>=2.18.0",
+]
