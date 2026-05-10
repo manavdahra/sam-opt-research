@@ -15,6 +15,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+import torch
 import torch.nn as nn
 
 from src.data.cifar10 import get_cifar10_loaders
@@ -51,11 +52,18 @@ def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
         verbose=True,
     )
 
+    ckpt_dir = os.path.join(cfg["results_dir"], cfg["model"], "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    ckpt_path = os.path.join(ckpt_dir, f"{opt_type}_rho{rho}_seed{seed}.pt")
+    torch.save(model.state_dict(), ckpt_path)
+    print(f"Checkpoint saved → {ckpt_path}")
+
     final = history[-1]
     final["divergence_rate"] = divergence_rate(final["train_loss"], final["test_loss"])
     final["seed"] = seed
     final["optimizer"] = opt_type
     final["rho"] = rho
+    final["checkpoint"] = ckpt_path
     final["history"] = history
     return final
 
