@@ -90,8 +90,9 @@ def main(config_path: str) -> None:
                 result = run_single(cfg, opt_type, rho, seed)
                 per_seed.append(result)
 
+            _non_numeric = {"history", "seed", "optimizer", "checkpoint"}
             agg = aggregate_seeds(
-                [{k: v for k, v in r.items() if k not in ("history", "seed")} for r in per_seed]
+                [{k: v for k, v in r.items() if k not in _non_numeric} for r in per_seed]
             )
             agg["optimizer"] = opt_name
             agg["rho"] = rho
