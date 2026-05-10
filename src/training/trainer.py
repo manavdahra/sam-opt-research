@@ -131,6 +131,7 @@ def train(
             # torch.compile with the inductor backend generates invalid Metal
             # shader code on MPS (known upstream bug). Skip on MPS.
             if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                torch.set_float32_matmul_precision("high")  # enable TF32 on Ampere+
                 model = torch.compile(model)
         except Exception:
             pass  # torch.compile not supported (e.g. Windows), silently skip
