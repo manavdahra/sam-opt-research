@@ -1,3 +1,4 @@
+import sys
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
@@ -84,6 +85,12 @@ def get_cifar10_loaders(
 
     import torch
     pin_memory = torch.cuda.is_available()  # pin_memory is unsupported on MPS
+
+    # HuggingFace datasets opens many parquet file descriptors; on macOS the
+    # default open-files limit (256) is quickly exhausted when DataLoader
+    # workers each inherit those descriptors. Force single-process loading on mac.
+    if sys.platform == "darwin":
+        num_workers = 0
 
     train_loader = DataLoader(
         train_dataset,

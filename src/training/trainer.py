@@ -114,13 +114,27 @@ def train(
     epochs: int,
     scheduler: LRScheduler | None = None,
     verbose: bool = True,
+    compile_model: bool = True,
 ) -> list[dict[str, float]]:
     """Full training loop for `epochs` epochs.
+
+    Args:
+        compile_model: If True, apply torch.compile() before training.
+            Adds ~30s warmup on first batch but speeds up subsequent epochs.
 
     Returns:
         List of per-epoch metric dicts, each containing:
         train_loss, train_acc, test_loss, test_acc, epoch.
     """
+    if compile_model:
+        try:
+            # torch.compile with the inductor backend generates invalid Metal
+            # shader code on MPS (known upstream bug). Skip on MPS.
+            if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                model = torch.compile(model)
+        except Exception:
+            pass  # torch.compile not supported (e.g. Windows), silently skip
+
     history: list[dict[str, float]] = []
     for epoch in range(1, epochs + 1):
         train_metrics = train_one_epoch(
