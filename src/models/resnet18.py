@@ -49,7 +49,8 @@ def apply_relu_reparam(model: nn.Module, alpha: float) -> None:
         # This correctly propagates the scale through BN (which would otherwise
         # absorb any scaling applied directly to conv1).
         with torch.no_grad():
-            bn1.weight.mul_(alpha)
+            if bn1.weight is not None:
+                bn1.weight.mul_(alpha)
             if bn1.bias is not None:
                 bn1.bias.mul_(alpha)
 
@@ -58,7 +59,7 @@ def apply_relu_reparam(model: nn.Module, alpha: float) -> None:
             conv2.weight.mul_(1.0 / alpha)
 
 
-def verify_reparam_resnet(model: nn.Module, x: torch.Tensor, alpha: float, atol: float = 1e-4) -> float:
+def verify_reparam_resnet(model: nn.Module, x: torch.Tensor, alpha: float) -> float:
     """Verify function-preservation of relu_reparam.
 
     Returns the max absolute difference between the original and reparametrized

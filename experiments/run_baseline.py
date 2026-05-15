@@ -78,6 +78,7 @@ def main(config_path: str) -> None:
     opt_cfgs = cfg["optimizers"]
 
     all_results = []
+    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
@@ -98,9 +99,8 @@ def main(config_path: str) -> None:
             agg["rho"] = rho
             agg["model"] = model_name
             all_results.append({"summary": agg, "per_seed": per_seed})
-
-    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
-    save_results(out_path, all_results)
+            # Write after every (opt, rho) group so results survive preemption.
+            save_results(out_path, all_results)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,159 @@
+% The template is adapted for CS229 project milestone
+\documentclass{article}
+
+\usepackage[preprint]{cs229}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{amsmath}
+\usepackage{fancyhdr}       % for headers and footers
+% Setup header
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyhead[C]{CS229 Project Milestone}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Custom title format for one-page document without the project title
+\renewcommand{\maketitle}{
+  \begin{center}
+    {\bf \large Testing Invariance and Generalization of Geometry-Aware Sharpness Minimization Methods}\\
+    \vspace{0.1cm}
+    {\bf Team Members:} Manav Dahra\\
+    \vspace{0.1cm}
+    {\bf Emails:} mav3rik@stanford.edu\\
+    \vspace{0.2cm}
+  \end{center}
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivation}
+% What problem are you tackling? Is this an application or a theoretical result?
+Recent advances in deep learning optimization highlight the importance of sharpness-aware methods that seek flat minima to improve generalization. One such method, Sharpness-Aware Minimization (SAM) \citep{foret2021sam}, has shown promising results. However, it is sensitive to the choice of model parameterization, as its perturbation radius is defined in the Euclidean metric.
+
+Adaptive SAM (ASAM) \citep{kwon2021asam} and Monge SAM (M-SAM) \citep{jacobsen2025msam} try to address these limitations by introducing scale invariance and geometry-aware metrics, respectively. However, existing evaluations of M-SAM are limited to a single fine-tuning task on ResNet-18 and a multi-modal alignment task; a systematic comparison of all three optimizers under controlled reparametrization across multiple architectures has not been done. 
+
+Understanding how these methods behave under reparametrization is crucial for developing more robust optimization techniques, and this gap motivates our empirical work on benchmarking SAM, ASAM, and M-SAM on ResNet-18 and ViT-B/32 architectures with a focus on reparametrization invariance and generalization performance.
+
+\section{Methods}
+
+\subsection{Optimizers}
+We implement three optimizers from scratch (SAM, ASAM, M-SAM) and compare them under controlled conditions.
+
+\textbf{SGD} serves as the reference baseline: vanilla stochastic gradient descent with momentum and weight decay, trained with a cosine-annealing learning rate schedule.
+
+\textbf{SAM} \citep{foret2021sam} augments SGD with a two-step update. In the first step the parameters are perturbed to the approximate local loss maximum within an $\ell_2$ ball of radius $\rho$:
+\[
+  \hat{\epsilon}(w) = \rho \cdot \frac{\nabla_w \mathcal{L}(w)}{\|\nabla_w \mathcal{L}(w)\|_2},
+\]
+and in the second step the base SGD update is applied at the perturbed point $w + \hat{\epsilon}(w)$.  Because the perturbation is defined in Euclidean space it is \emph{not} invariant to function-preserving rescalings of the weights.
+
+\textbf{ASAM} \citep{kwon2021asam} addresses this by replacing the $\ell_2$ norm with an adaptive (parameter-scaled) norm.  The perturbation becomes
+\[
+  \hat{\epsilon}_\text{ASAM}(w) = \rho \cdot \frac{T_w^2 \nabla_w \mathcal{L}(w)}{\|T_w \nabla_w \mathcal{L}(w)\|_2},
+\]
+where $T_w = \mathrm{diag}(|w| + \eta)$ with a small floor $\eta=0.01$.  Multiplying the perturbation by $|w|^2$ makes it scale-invariant: if every weight is multiplied by a scalar $\alpha$, $\hat{\epsilon}_\text{ASAM}$ is unchanged.  Our implementation exactly follows this formula.
+
+\textbf{M-SAM} \citep{jacobsen2025msam} takes a Riemannian geometry perspective.  The loss is viewed as a function on the model-function manifold; the Monge metric on that manifold yields a correction factor $1/\sqrt{1 + \|\nabla_w \mathcal{L}(w)\|_2^2}$ applied to the SAM perturbation:
+\[
+  \hat{\epsilon}_\text{MSAM}(w) = \frac{\rho}{\|\nabla_w \mathcal{L}(w)\|_2} \cdot \frac{1}{\sqrt{1 + \|\nabla_w \mathcal{L}(w)\|_2^2}} \cdot \nabla_w \mathcal{L}(w).
+\]
+This factor shrinks large-gradient perturbations, promoting geometry-aware and reparametrization-robust updates.
+
+\subsection{Model and Dataset}
+We use \textbf{ResNet-18} \citep{he2016resnet} adapted for CIFAR-10 \citep{krizhevsky2009cifar}: the standard ImageNet stem (7$\times$7 conv, stride 2, max-pool) is replaced with a 3$\times$3 stride-1 conv and an identity layer to retain spatial resolution for 32$\times$32 inputs.  The final fully-connected layer maps from 512 to 10 classes.  All experiments use a single random seed (seed 42) at this stage; multi-seed evaluation is planned for the final report.
+
+\subsection{Training Protocol}
+All models are trained for 200 epochs on CIFAR-10 with:
+\begin{itemize}
+  \item Batch size 256, learning rate 0.1, momentum 0.9, weight decay $5\times10^{-4}$;
+  \item Cosine-annealing LR schedule (no warmup);
+  \item Perturbation radius $\rho$ swept over $\{0.005, 0.01, 0.02, 0.03, 0.05\}$ for SAM and M-SAM; a single $\rho=0.5$ for ASAM (following the original paper's recommended scale).
+\end{itemize}
+For both SAM variants two forward–backward passes are performed per iteration.
+
+\subsection{Evaluation Metrics}
+We track final test accuracy, training accuracy, cross-entropy loss curves, and the \emph{divergence rate} $\Delta = \mathcal{L}_\text{test} - \mathcal{L}_\text{train}$ as a proxy for generalization gap.  For reparametrization invariance we measure the variance of final test accuracy across scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ applied to a function-preserving ReLU-layer rescaling.  Sharpness will be estimated via the Hutchinson stochastic trace estimator $\mathrm{tr}(H)/d$ with Rademacher vectors, which avoids forming the full Hessian.
+
+
+\section{Preliminary Experiments and Results}
+
+\subsection{Baseline Training (Experiment 1)}
+We have completed the full baseline sweep (200 epochs each) for all three optimizer families on ResNet-18/CIFAR-10, producing 12 checkpoint files: SGD ($\rho{=}0$), SAM at five $\rho$ values, ASAM at $\rho{=}0.5$, and M-SAM at five $\rho$ values.
+
+Table~\ref{tab:sgd_baseline} reports the SGD result and selected training-curve milestones.
+
+\begin{table}[h]
+\centering
+\caption{SGD baseline on ResNet-18/CIFAR-10 (200 epochs, seed 42).}
+\label{tab:sgd_baseline}
+\begin{tabular}{lcccc}
+\toprule
+Optimizer & $\rho$ & Train Acc & Test Acc & Divergence Rate $\Delta$ \\
+\midrule
+SGD & 0.000 & 100.00\% & 95.45\% & 0.1773 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The SGD model converges to near-zero training loss (0.0015) while achieving 95.45\% test accuracy, consistent with published results for ResNet-18 on CIFAR-10.  The divergence rate of 0.177 indicates moderate overfitting, which is expected given training to full convergence without early stopping.
+
+Figure~\ref{fig:sgd_curve} summarises the learning dynamics: test accuracy rises steadily through the first 150 epochs, with the bulk of generalization gains occurring during the cosine-annealing decay phase (epochs 100–200), when test accuracy improves from $\sim$91\% to 95.5\%.
+
+\begin{figure}[h]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\textit{[SGD training/test accuracy curves — figure to be included in final report]}
+\end{minipage}
+\caption{SGD training and test accuracy over 200 epochs on ResNet-18/CIFAR-10.}
+\label{fig:sgd_curve}
+\end{figure}
+
+\subsection{Infrastructure and Implementation Validation}
+The training pipeline, data loading (HuggingFace CIFAR-10 cached locally), optimizer implementations, and checkpoint saving have all been validated.  The reparametrization utility (\texttt{apply\_relu\_reparam}) for ResNet-18 BasicBlocks has been implemented and tested: it scales BN1 affine parameters by $\alpha$ and compensates with $1/\alpha$ on the input channels of the subsequent convolution, exactly preserving the network function for any $\alpha > 0$.  The Hutchinson sharpness estimator and 1D loss landscape visualizer are also implemented and unit-tested.
+
+ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so the reparametrization via simple weight scaling introduces a measurable output deviation ($\sim$0.06 per unit for $\alpha=2$). This issue is being investigated; a corrected formulation will be incorporated before the final report.
+
+
+\section{Next Steps}
+
+\begin{enumerate}
+  \item \textbf{Comparative baseline analysis.}  Extract and aggregate final metrics (test accuracy, train loss, divergence rate) for all 12 completed checkpoints and produce a table comparing SAM, ASAM, and M-SAM against SGD across all $\rho$ values.  Identify the best $\rho$ for each optimizer.
+
+  \item \textbf{Reparametrization invariance experiment (Experiment 2).}  Run the full sweep: for each of the four optimizers, apply the five scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ to the ResNet-18 initialization and train for 200 epochs.  Report per-optimizer variance of final test accuracy across $\alpha$ values and test the hypothesis that SAM is most sensitive, ASAM is partially invariant, and M-SAM is most invariant.
+
+  \item \textbf{Flatness / sharpness analysis (Experiment 3).}  Load the trained checkpoints and compute: (a) the Hutchinson trace estimate $\mathrm{tr}(H)/d$ for each optimizer's best checkpoint; (b) 1D loss landscapes along random filter-normalized directions to visualize flatness.  Correlate sharpness estimates with generalization gap.
+
+  \item \textbf{Multi-seed evaluation.}  Re-run the best configurations with seeds $\{0, 1, 2\}$ (in addition to seed 42) to obtain SEM estimates and statistically sound comparisons.
+
+  \item \textbf{ViT experiments (stretch goal).}  Resolve the GELU reparametrization approximation and replicate the key experiments on ViT-B/32 to test whether geometry-aware invariance generalises across architectures.
+\end{enumerate}
+
+
+\section{Team Contributions}
+\begin{itemize}
+    \item \textbf{Manav Dahra}: End-to-end implementation of all four optimizers (SGD, SAM, ASAM, M-SAM); ResNet-18 and ViT-B/32 model adapters; CIFAR-10 data pipeline; training loop with two-step SAM closure support; reparametrization utility for ResNet-18 BasicBlocks; Hutchinson trace estimator and 1D loss landscape analysis; experiment runner scripts and YAML configuration system; baseline training sweep (12 checkpoint runs); initial results collection and this milestone writeup.
+\end{itemize}
+
+% References
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{reference}
+% If you don't have a .bib file, you can use the following manual format:
+%\begin{thebibliography}{9}
+%\bibitem{ref1}
+%Author, A. et al. (Year). Title of paper. \textit{Conference/Journal}, pages.
+%
+%\bibitem{ref2}
+%Author, B. et al. (Year). Title of paper. \textit{Conference/Journal}, pages.
+%\end{thebibliography}
+
+\end{document}
