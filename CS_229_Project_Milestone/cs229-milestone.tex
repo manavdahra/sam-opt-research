@@ -12,6 +12,7 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
 \usepackage{amsmath}
+\usepackage{graphicx}       % includegraphics
 \usepackage{fancyhdr}       % for headers and footers
 % Setup header
 \pagestyle{fancy}
@@ -81,41 +82,92 @@ All models are trained for 200 epochs on CIFAR-10 with:
 For both SAM variants two forward–backward passes are performed per iteration.
 
 \subsection{Evaluation Metrics}
-We track final test accuracy, training accuracy, cross-entropy loss curves, and the \emph{divergence rate} $\Delta = \mathcal{L}_\text{test} - \mathcal{L}_\text{train}$ as a proxy for generalization gap.  For reparametrization invariance we measure the variance of final test accuracy across scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ applied to a function-preserving ReLU-layer rescaling.  Sharpness will be estimated via the Hutchinson stochastic trace estimator $\mathrm{tr}(H)/d$ with Rademacher vectors, which avoids forming the full Hessian.
+We track final test accuracy, training accuracy, cross-entropy loss curves, and the \emph{divergence rate} $\Delta = \mathcal{L}_\text{test} - \mathcal{L}_\text{train}$ as a proxy for generalization gap. For reparametrization invariance we measure the variance of final test accuracy across scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ applied to a function-preserving ReLU-layer rescaling.  Sharpness will be estimated via the Hutchinson stochastic trace estimator $\mathrm{tr}(H)/d$ with Rademacher vectors, which avoids forming the full Hessian.
 
 
 \section{Preliminary Experiments and Results}
 
-\subsection{Baseline Training (Experiment 1)}
-We have completed the full baseline sweep (200 epochs each) for all three optimizer families on ResNet-18/CIFAR-10, producing 12 checkpoint files: SGD ($\rho{=}0$), SAM at five $\rho$ values, ASAM at $\rho{=}0.5$, and M-SAM at five $\rho$ values.
+\subsection{Baseline Training}
+We have completed the full baseline sweep (200 epochs each) for all four optimizer (SGD, SAM, ASAM, M-SAM) families on ResNet-18/CIFAR-10, producing 12 checkpoint files: SGD ($\rho{=}0$), SAM at five $\rho$ values, ASAM at $\rho{=}0.5$, and M-SAM at five $\rho$ values.  All models reach 100\% training accuracy.
 
-Table~\ref{tab:sgd_baseline} reports the SGD result and selected training-curve milestones.
+Table~\ref{tab:baseline_full} reports test accuracy and divergence rate $\Delta$ for every configuration.
 
 \begin{table}[h]
 \centering
-\caption{SGD baseline on ResNet-18/CIFAR-10 (200 epochs, seed 42).}
-\label{tab:sgd_baseline}
-\begin{tabular}{lcccc}
+\caption{Full baseline results on ResNet-18/CIFAR-10 (200 epochs, seed 42). Best row per optimizer shown in bold.}
+\label{tab:baseline_full}
+\begin{tabular}{llcc}
 \toprule
-Optimizer & $\rho$ & Train Acc & Test Acc & Divergence Rate $\Delta$ \\
+Optimizer & $\rho$ & Test Acc (\%) & Div.\ Rate $\Delta$ \\
 \midrule
-SGD & 0.000 & 100.00\% & 95.45\% & 0.1773 \\
+SGD      & 0.000 & 95.46          & 0.1777 \\
+\midrule
+\textbf{SAM} & \textbf{0.020} & \textbf{95.75} & \textbf{0.1494} \\
+SAM      & 0.005 & 95.23          & 0.1784 \\
+SAM      & 0.010 & 95.31          & 0.1729 \\
+SAM      & 0.030 & 95.70          & 0.1473 \\
+SAM      & 0.050 & 95.55          & 0.1407 \\
+\midrule
+\textbf{ASAM} & \textbf{0.500} & \textbf{95.79} & \textbf{0.1440} \\
+\midrule
+M-SAM    & 0.005 & 95.47          & 0.1736 \\
+M-SAM    & 0.010 & 95.50          & 0.1683 \\
+M-SAM    & 0.020 & 95.64          & 0.1559 \\
+\textbf{M-SAM} & \textbf{0.030} & \textbf{95.76} & \textbf{0.1451} \\
+M-SAM    & 0.050 & 95.75          & 0.1384 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The SGD model converges to near-zero training loss (0.0015) while achieving 95.45\% test accuracy, consistent with published results for ResNet-18 on CIFAR-10.  The divergence rate of 0.177 indicates moderate overfitting, which is expected given training to full convergence without early stopping.
+The SGD baseline converges to near-zero training loss while achieving 95.46\% test accuracy, consistent with published results for ResNet-18 on CIFAR-10.  All SAM-family optimizers exceed SGD at their best $\rho$ setting.  ASAM achieves the highest single-run test accuracy (95.79\%) with a meaningfully reduced divergence rate, despite requiring only a single $\rho$ value.  M-SAM at $\rho{=}0.05$ achieves the lowest divergence rate overall (0.1384), a 22\% reduction relative to SGD.  SAM benefits clearly from larger $\rho$, while M-SAM's Monge correction already dampens over-perturbation at smaller $\rho$.
 
-Figure~\ref{fig:sgd_curve} summarises the learning dynamics: test accuracy rises steadily through the first 150 epochs, with the bulk of generalization gains occurring during the cosine-annealing decay phase (epochs 100–200), when test accuracy improves from $\sim$91\% to 95.5\%.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/results/baseline/resnet18/baseline_gen_gap.png}
+\caption{Generalization gap $\Delta = \mathcal{L}_{\text{test}} - \mathcal{L}_{\text{train}}$ analysis on ResNet-18/CIFAR-10 (seed 42). \emph{Left}: divergence rate vs.\ $\rho$ for SAM and M-SAM; both decrease monotonically as $\rho$ grows, with M-SAM consistently lower. \emph{Right}: best-$\rho$ divergence rate per optimizer compared to SGD (0.1777). All SAM-family optimizers reduce the generalization gap; M-SAM at $\rho{=}0.05$ achieves the largest reduction (0.1384, $-$22\% vs.\ SGD).}
+\label{fig:baseline_gen_gap}
+\end{figure}
+
+\subsection{Sharpness and Flatness Analysis}
+We ran the Hutchinson stochastic trace estimator ($n{=}20$ Rademacher vectors, max batch 64) on all 12 checkpoints and computed 1D loss landscapes along filter-normalized random directions (51 steps, $\alpha \in [-1, 1]$).  Table~\ref{tab:sharpness} reports $\mathrm{tr}(H)/d$ for each configuration; Figure~\ref{fig:landscape} shows the 1D landscape for the best checkpoint per optimizer.
+
+\begin{table}[h]
+\centering
+\caption{Hutchinson sharpness estimate $\mathrm{tr}(H)/d$ for all 12 checkpoints on ResNet-18/CIFAR-10. Lower is flatter.}
+\label{tab:sharpness}
+\begin{tabular}{llc}
+\toprule
+Optimizer & $\rho$ & $\mathrm{tr}(H)/d$ \\
+\midrule
+SGD      & 0.000 & $6.25 \times 10^{-4}$ \\
+\midrule
+SAM      & 0.005 & $6.35 \times 10^{-4}$ \\
+SAM      & 0.010 & $4.02 \times 10^{-4}$ \\
+SAM      & 0.020 & $4.45 \times 10^{-4}$ \\
+SAM      & 0.030 & $5.16 \times 10^{-4}$ \\
+\textbf{SAM} & \textbf{0.050} & $\mathbf{3.43 \times 10^{-4}}$ \\
+\midrule
+ASAM     & 0.500 & $3.17 \times 10^{-4}$ \\
+\midrule
+M-SAM    & 0.005 & $6.24 \times 10^{-4}$ \\
+M-SAM    & 0.010 & $4.29 \times 10^{-4}$ \\
+M-SAM    & 0.020 & $4.40 \times 10^{-4}$ \\
+M-SAM    & 0.030 & $2.61 \times 10^{-4}$ \\
+\textbf{M-SAM} & \textbf{0.050} & $\mathbf{1.89 \times 10^{-4}}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Several observations stand out.  First, SAM at $\rho{=}0.005$ is \emph{sharper} than SGD ($6.35 \times 10^{-4}$ vs.\ $6.25 \times 10^{-4}$), confirming that an under-sized perturbation radius fails to flatten the loss landscape and can hurt generalization.  Second, M-SAM at $\rho{=}0.05$ achieves the lowest sharpness across all runs ($1.89 \times 10^{-4}$, approximately 70\% flatter than SGD), consistent with its best divergence rate.  Third, ASAM ($3.17 \times 10^{-4}$) is flatter than SGD and comparable to the best SAM setting, yet achieves the highest raw test accuracy, suggesting that its adaptive normalization improves generalization through a mechanism not fully captured by the scalar Hessian trace.
 
 \begin{figure}[h]
 \centering
 \begin{minipage}{0.48\textwidth}
 \centering
-\textit{[SGD training/test accuracy curves — figure to be included in final report]}
+\textit{[1D loss landscapes (y-clipped at 5.0) for best SAM, ASAM, M-SAM, SGD checkpoints — interactive HTML figure; static version to be included in final report]}
 \end{minipage}
-\caption{SGD training and test accuracy over 200 epochs on ResNet-18/CIFAR-10.}
-\label{fig:sgd_curve}
+\caption{1D filter-normalized loss landscapes for the best checkpoint of each optimizer. Perturbation directions exclude BatchNorm scale/shift parameters. Y-axis clipped at 5.0 to reveal basin geometry.}
+\label{fig:landscape}
 \end{figure}
 
 \subsection{Infrastructure and Implementation Validation}
@@ -127,13 +179,11 @@ ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so
 \section{Next Steps}
 
 \begin{enumerate}
-  \item \textbf{Comparative baseline analysis.}  Extract and aggregate final metrics (test accuracy, train loss, divergence rate) for all 12 completed checkpoints and produce a table comparing SAM, ASAM, and M-SAM against SGD across all $\rho$ values.  Identify the best $\rho$ for each optimizer.
-
   \item \textbf{Reparametrization invariance experiment (Experiment 2).}  Run the full sweep: for each of the four optimizers, apply the five scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ to the ResNet-18 initialization and train for 200 epochs.  Report per-optimizer variance of final test accuracy across $\alpha$ values and test the hypothesis that SAM is most sensitive, ASAM is partially invariant, and M-SAM is most invariant.
 
-  \item \textbf{Flatness / sharpness analysis (Experiment 3).}  Load the trained checkpoints and compute: (a) the Hutchinson trace estimate $\mathrm{tr}(H)/d$ for each optimizer's best checkpoint; (b) 1D loss landscapes along random filter-normalized directions to visualize flatness.  Correlate sharpness estimates with generalization gap.
+  \item \textbf{Multi-seed evaluation.}  Re-run the best configurations (SAM $\rho{=}0.02$, ASAM $\rho{=}0.5$, M-SAM $\rho{=}0.05$, SGD) with seeds $\{0, 1, 2\}$ (in addition to seed 42) to obtain SEM estimates and statistically sound comparisons.  Current single-seed results show consistent trends but cannot support significance claims.
 
-  \item \textbf{Multi-seed evaluation.}  Re-run the best configurations with seeds $\{0, 1, 2\}$ (in addition to seed 42) to obtain SEM estimates and statistically sound comparisons.
+  \item \textbf{Sharpness--generalization correlation.}  With multi-seed data, compute the Pearson correlation between $\mathrm{tr}(H)/d$ and divergence rate $\Delta$ across all optimizer--$\rho$ combinations to quantify how well local sharpness predicts generalization.
 
   \item \textbf{ViT experiments (stretch goal).}  Resolve the GELU reparametrization approximation and replicate the key experiments on ViT-B/32 to test whether geometry-aware invariance generalises across architectures.
 \end{enumerate}

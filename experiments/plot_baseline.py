@@ -1,9 +1,9 @@
 """Visualize baseline results from baseline_results.json.
 
-Produces three figures saved alongside the JSON:
-  1. baseline_accuracy.png  — test accuracy vs ρ per optimizer family
-  2. baseline_gen_gap.png   — generalization gap (test_loss - train_loss) per optimizer/ρ
-  3. baseline_summary.png   — best-ρ accuracy + gen-gap side by side
+Produces three interactive HTML figures saved alongside the JSON:
+  1. baseline_accuracy.html  — test accuracy vs ρ per optimizer family
+  2. baseline_gen_gap.html   — generalization gap per optimizer/ρ
+  3. baseline_summary.html   — best-ρ accuracy + gen-gap side by side
 
 Usage:
     uv run python experiments/plot_baseline.py \
@@ -20,18 +20,15 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-# ── colour / marker map ──────────────────────────────────────────────────────
+# ── colour / symbol map ──────────────────────────────────────────────────────
 OPT_STYLE: dict[str, dict] = {
-    "sam":  {"color": "#2196F3", "marker": "o", "label": "SAM"},
-    "msam": {"color": "#4CAF50", "marker": "s", "label": "M-SAM"},
-    "asam": {"color": "#FF9800", "marker": "^", "label": "ASAM"},
-    "sgd":  {"color": "#9E9E9E", "marker": "D", "label": "SGD"},
+    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
+    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
+    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
+    "sgd":  {"color": "#9E9E9E", "symbol": "diamond",  "label": "SGD"},
 }
 
 
@@ -47,13 +44,18 @@ def _summary(entry: dict) -> dict:
 # ── Figure 1: test accuracy vs ρ ─────────────────────────────────────────────
 
 def plot_accuracy(data: list[dict], out_dir: str) -> None:
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    fig = go.Figure()
 
     # SGD — horizontal dashed reference
     sgd = next(s for s in data if _summary(s)["optimizer"] == "sgd")
     sgd_acc = _summary(sgd)["test_acc_mean"]
-    ax.axhline(sgd_acc, color=OPT_STYLE["sgd"]["color"], linestyle="--",
-               linewidth=1.5, label=f"SGD  ({sgd_acc:.4f})", zorder=1)
+    fig.add_hline(
+        y=sgd_acc,
+        line_dash="dash",
+        line_color=OPT_STYLE["sgd"]["color"],
+        annotation_text=f"SGD ({sgd_acc:.4f})",
+        annotation_position="top right",
+    )
 
     # SAM & MSAM — line plots over ρ
     for opt in ("sam", "msam"):
@@ -64,41 +66,53 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
         rhos = [_summary(r)["rho"] for r in rows]
         accs = [_summary(r)["test_acc_mean"] for r in rows]
         style = OPT_STYLE[opt]
-        ax.plot(rhos, accs, color=style["color"], marker=style["marker"],
-                linewidth=2, markersize=6, label=style["label"], zorder=3)
+        fig.add_trace(go.Scatter(
+            x=rhos, y=accs, mode="lines+markers",
+            name=style["label"],
+            line=dict(color=style["color"]),
+            marker=dict(color=style["color"], size=8, symbol=style["symbol"]),
+        ))
 
-    # ASAM — single point (different ρ scale — annotate separately)
+    # ASAM — single point
     asam = next(s for s in data if _summary(s)["optimizer"] == "asam")
     asam_rho = _summary(asam)["rho"]
     asam_acc = _summary(asam)["test_acc_mean"]
     style = OPT_STYLE["asam"]
-    ax.scatter([asam_rho], [asam_acc], color=style["color"], marker=style["marker"],
-               s=80, zorder=4, label=f"{style['label']}  (ρ={asam_rho})")
-    ax.annotate(f"ρ={asam_rho}", xy=(asam_rho, asam_acc),
-                xytext=(asam_rho - 0.07, asam_acc - 0.0015),
-                fontsize=8, color=style["color"])
+    fig.add_trace(go.Scatter(
+        x=[asam_rho], y=[asam_acc], mode="markers+text",
+        name=f"{style['label']} (ρ={asam_rho})",
+        marker=dict(color=style["color"], size=12, symbol=style["symbol"]),
+        text=[f"ρ={asam_rho}"], textposition="bottom center",
+    ))
 
-    ax.set_xlabel("Perturbation radius ρ", fontsize=12)
-    ax.set_ylabel("Test accuracy", fontsize=12)
-    ax.set_title("Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)", fontsize=12)
-    ax.legend(fontsize=9)
-    ax.grid(True, alpha=0.3)
-    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.4f"))
-
-    path = os.path.join(out_dir, "baseline_accuracy.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig.update_layout(
+        title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
+        xaxis_title="Perturbation radius ρ",
+        yaxis_title="Test accuracy",
+        yaxis_tickformat=".4f",
+        template="plotly_white",
+        legend=dict(x=0.01, y=0.01),
+        font=dict(size=16),
+        title_font=dict(size=18),
+    )
+    path = os.path.join(out_dir, "baseline_accuracy.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
+    png_path = os.path.join(out_dir, "baseline_accuracy.png")
+    fig.write_image(png_path, width=900, height=550, scale=2)
+    print(f"Saved → {png_path}")
 
 
 # ── Figure 2: generalization gap vs optimizer/ρ ──────────────────────────────
 
 def plot_gen_gap(data: list[dict], out_dir: str) -> None:
-    # Separate SAM/MSAM (shared ρ axis) from ASAM/SGD (single values)
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), gridspec_kw={"width_ratios": [2, 1]})
+    fig = make_subplots(
+        rows=1, cols=2,
+        column_widths=[0.6, 0.4],
+        subplot_titles=["Gen. Gap vs ρ", "Best ρ per Optimizer"],
+    )
 
-    # Left: SAM & MSAM line plot
-    ax = axes[0]
+    # Left: SAM & MSAM line plots
     for opt in ("sam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
@@ -107,88 +121,96 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
         rhos = [_summary(r)["rho"] for r in rows]
         gaps = [_summary(r)["divergence_rate_mean"] for r in rows]
         style = OPT_STYLE[opt]
-        ax.plot(rhos, gaps, color=style["color"], marker=style["marker"],
-                linewidth=2, markersize=6, label=style["label"])
+        fig.add_trace(go.Scatter(
+            x=rhos, y=gaps, mode="lines+markers",
+            name=style["label"],
+            line=dict(color=style["color"]),
+            marker=dict(color=style["color"], size=7, symbol=style["symbol"]),
+        ), row=1, col=1)
 
     sgd = next(s for s in data if _summary(s)["optimizer"] == "sgd")
-    ax.axhline(_summary(sgd)["divergence_rate_mean"],
-               color=OPT_STYLE["sgd"]["color"], linestyle="--",
-               linewidth=1.5, label="SGD")
+    sgd_gap = _summary(sgd)["divergence_rate_mean"]
+    fig.add_hline(
+        y=sgd_gap, line_dash="dash", line_color=OPT_STYLE["sgd"]["color"],
+        annotation_text=f"SGD ({sgd_gap:.4f})",
+        annotation_position="top right",
+        row=1, col=1,
+    )
 
-    ax.set_xlabel("Perturbation radius ρ", fontsize=11)
-    ax.set_ylabel("Generalization gap (test_loss − train_loss)", fontsize=11)
-    ax.set_title("Generalization Gap vs ρ", fontsize=11)
-    ax.legend(fontsize=9)
-    ax.grid(True, alpha=0.3)
-
-    # Right: bar chart of best-ρ per optimizer
-    ax2 = axes[1]
-    best: list[tuple[str, float]] = []
+    # Right: best-ρ bar chart
+    best_labels, best_gaps, best_colors = [], [], []
     for opt in ("sgd", "sam", "msam", "asam"):
-        rows = [s for s in data if _summary(s)["optimizer"] == opt]
-        best_entry = min(rows, key=lambda s: _summary(s)["divergence_rate_mean"])
+        rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+        best_entry = min(rows_, key=lambda s: _summary(s)["divergence_rate_mean"])
         label = OPT_STYLE[opt]["label"]
         gap = _summary(best_entry)["divergence_rate_mean"]
         rho = _summary(best_entry)["rho"]
-        best.append((f"{label}\n(ρ={rho})", gap, opt))
+        best_labels.append(f"{label}<br>(ρ={rho})")
+        best_gaps.append(gap)
+        best_colors.append(OPT_STYLE[opt]["color"])
 
-    labels = [b[0] for b in best]
-    gaps = [b[1] for b in best]
-    colors = [OPT_STYLE[b[2]]["color"] for b in best]
-    bars = ax2.bar(labels, gaps, color=colors, edgecolor="white", linewidth=0.8)
-    for bar, gap in zip(bars, gaps):
-        ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.001,
-                 f"{gap:.4f}", ha="center", va="bottom", fontsize=8)
-    ax2.set_ylabel("Generalization gap", fontsize=11)
-    ax2.set_title("Best ρ per Optimizer", fontsize=11)
-    ax2.grid(True, alpha=0.3, axis="y")
+    fig.add_trace(go.Bar(
+        x=best_labels, y=best_gaps,
+        marker_color=best_colors,
+        text=[f"{g:.4f}" for g in best_gaps],
+        textposition="outside",
+        showlegend=False,
+    ), row=1, col=2)
 
-    fig.tight_layout()
-    path = os.path.join(out_dir, "baseline_gen_gap.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig.update_layout(
+        title="Generalization Gap Analysis (ResNet-18 / CIFAR-10)",
+        template="plotly_white",
+        yaxis_title="Generalization gap",
+        font=dict(size=16),
+        title_font=dict(size=18),
+    )
+    path = os.path.join(out_dir, "baseline_gen_gap.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
+    png_path = os.path.join(out_dir, "baseline_gen_gap.png")
+    fig.write_image(png_path, width=1200, height=550, scale=2)
+    print(f"Saved → {png_path}")
 
 
-# ── Figure 3: summary — best accuracy + gen gap side by side ─────────────────
+# ── Figure 3: summary — best accuracy + generalization gap side by side ─────────────────
 
 def plot_summary(data: list[dict], out_dir: str) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=["Best Test Accuracy per Optimizer", "Smallest Generalization Gap per Optimizer"],
+    )
 
-    for ax_idx, (metric_key, ylabel, title) in enumerate([
-        ("test_acc_mean", "Test accuracy", "Best Test Accuracy per Optimizer"),
-        ("divergence_rate_mean", "Generalization gap", "Smallest Gen. Gap per Optimizer"),
-    ]):
-        ax = axes[ax_idx]
-        best: list[tuple[str, float, str]] = []
+    for col_idx, (metric_key, maximize) in enumerate([
+        ("test_acc_mean", True),
+        ("divergence_rate_mean", False),
+    ], start=1):
+        labels, vals, colors = [], [], []
         for opt in ("sgd", "sam", "msam", "asam"):
-            rows = [s for s in data if _summary(s)["optimizer"] == opt]
-            if metric_key == "test_acc_mean":
-                best_entry = max(rows, key=lambda s: _summary(s)[metric_key])
-            else:
-                best_entry = min(rows, key=lambda s: _summary(s)[metric_key])
+            rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+            best_entry = (max if maximize else min)(rows_, key=lambda s: _summary(s)[metric_key])
             label = OPT_STYLE[opt]["label"]
             val = _summary(best_entry)[metric_key]
             rho = _summary(best_entry)["rho"]
-            best.append((f"{label}\n(ρ={rho})", val, opt))
+            labels.append(f"{label}<br>(ρ={rho})")
+            vals.append(val)
+            colors.append(OPT_STYLE[opt]["color"])
 
-        labels = [b[0] for b in best]
-        vals = [b[1] for b in best]
-        colors = [OPT_STYLE[b[2]]["color"] for b in best]
-        bars = ax.bar(labels, vals, color=colors, edgecolor="white", linewidth=0.8)
-        for bar, val in zip(bars, vals):
-            ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + (0.0003 if metric_key == "test_acc_mean" else 0.001),
-                    f"{val:.4f}", ha="center", va="bottom", fontsize=8)
-        ax.set_ylabel(ylabel, fontsize=11)
-        ax.set_title(title, fontsize=11)
-        ax.grid(True, alpha=0.3, axis="y")
+        fig.add_trace(go.Bar(
+            x=labels, y=vals,
+            marker_color=colors,
+            text=[f"{v:.4f}" for v in vals],
+            textposition="outside",
+            showlegend=False,
+        ), row=1, col=col_idx)
 
-    fig.suptitle("ResNet-18 / CIFAR-10 — Baseline Sweep Summary", fontsize=12, y=1.02)
-    fig.tight_layout()
-    path = os.path.join(out_dir, "baseline_summary.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig.update_layout(
+        title="ResNet-18 / CIFAR-10 — Baseline Sweep Summary",
+        template="plotly_white",
+        font=dict(size=16),
+        title_font=dict(size=18),
+    )
+    path = os.path.join(out_dir, "baseline_summary.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
 
 

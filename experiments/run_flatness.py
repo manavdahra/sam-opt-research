@@ -29,13 +29,12 @@ if _ROOT not in sys.path:
 import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from src.data.cifar10 import get_cifar10_loaders
 from src.analysis.hutchinson import hutchinson_trace
-from src.analysis.landscape import loss_landscape_1d, plot_loss_landscape
+from src.analysis.landscape import loss_landscape_2d, plot_loss_landscape_2d
 from experiments.utils import get_device, set_seed, build_model, save_results
 
 # Filename pattern: <opt>_rho<rho>_seed<seed>.pt
@@ -64,12 +63,12 @@ def _analyse_one(
     test_loader,
     device: torch.device,
     n_samples: int = 20,
-) -> tuple[float, list, list]:
-    """Returns (trace, alphas_list, losses_list)."""
+) -> tuple[float, list, list, list]:
+    """Returns (trace, alphas_list, betas_list, losses_2d_list)."""
     trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, losses = loss_landscape_1d(model, loss_fn, test_loader, device, steps=51, range_=1.0)
-    return trace, alphas.tolist(), losses.tolist()
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=1.0)
+    return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
 # ── single-checkpoint mode ───────────────────────────────────────────────────
@@ -91,14 +90,15 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
     model = _load_checkpoint(checkpoint, cfg, device)
-    trace, alphas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples)
+    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples)
 
     os.makedirs(out_dir, exist_ok=True)
     save_results(os.path.join(out_dir, "sharpness.json"), {name: trace})
-    save_results(os.path.join(out_dir, "landscape.json"), {name: (alphas, losses)})
-    plot_loss_landscape(
-        {name: (np.array(alphas), np.array(losses))},
-        save_path=os.path.join(out_dir, "landscape.png"),
+    save_results(os.path.join(out_dir, "landscape.json"), {name: (alphas, betas, losses)})
+    plot_loss_landscape_2d(
+        np.array(alphas), np.array(betas), np.array(losses),
+        title=f"2D Loss Landscape — {name}",
+        save_path=os.path.join(out_dir, "landscape.html"),
     )
     print(f"Outputs saved to {out_dir}/")
 
@@ -143,9 +143,9 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         key = f"{e['opt']}_rho{e['rho']}"
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
-        trace, alphas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples)
+        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples)
         sharpness_all[key] = trace
-        landscape_all[key] = (alphas, losses)
+        landscape_all[key] = (alphas, betas, losses)
         # Incremental save after each checkpoint
         save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
 
@@ -171,21 +171,22 @@ def _plot_sharpness_bars(sharpness: dict[str, float], out_dir: str) -> None:
     keys = list(sharpness.keys())
     vals = [sharpness[k] for k in keys]
     colors = [OPT_STYLE.get(_opt_from_key(k), {}).get("color", "#607D8B") for k in keys]
+    labels = [k.replace("_rho", " ρ=") for k in keys]
 
-    fig, ax = plt.subplots(figsize=(max(8, len(keys) * 0.7), 4.5))
-    bars = ax.bar(range(len(keys)), vals, color=colors, edgecolor="white")
-    for bar, val in zip(bars, vals):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.01,
-                f"{val:.4f}", ha="center", va="bottom", fontsize=7, rotation=45)
-    ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels([k.replace("_rho", "\nρ=") for k in keys], fontsize=8)
-    ax.set_ylabel("tr(H) / d  (sharpness)", fontsize=11)
-    ax.set_title("Hutchinson Sharpness Estimate — All Checkpoints", fontsize=11)
-    ax.grid(True, alpha=0.3, axis="y")
-    fig.tight_layout()
-    path = os.path.join(out_dir, "sharpness_bars.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig = go.Figure(go.Bar(
+        x=labels, y=vals,
+        marker_color=colors,
+        text=[f"{v:.6f}" for v in vals],
+        textposition="outside",
+    ))
+    fig.update_layout(
+        title="Hutchinson Sharpness Estimate — All Checkpoints",
+        xaxis_title="Checkpoint",
+        yaxis_title="tr(H) / d  (sharpness)",
+        template="plotly_white",
+    )
+    path = os.path.join(out_dir, "sharpness_bars.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
 
     # Also: sharpness vs ρ per optimizer family (line plot)
@@ -200,91 +201,133 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
         rho = float(key.split("rho")[1])
         by_opt[opt].append((rho, trace))
 
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    fig = go.Figure()
     for opt in ("sam", "msam", "asam", "sgd"):
         if opt not in by_opt:
             continue
         pts = sorted(by_opt[opt])
         rhos = [p[0] for p in pts]
-        traces = [p[1] for p in pts]
+        traces_ = [p[1] for p in pts]
         style = OPT_STYLE.get(opt, {})
-        if len(rhos) == 1:
-            ax.scatter(rhos, traces, color=style.get("color", "gray"),
-                       s=80, zorder=4, label=opt.upper())
-        else:
-            ax.plot(rhos, traces, color=style.get("color", "gray"),
-                    linestyle=style.get("linestyle", "-"),
-                    marker="o", linewidth=2, markersize=6, label=opt.upper())
+        mode = "markers" if len(rhos) == 1 else "lines+markers"
+        fig.add_trace(go.Scatter(
+            x=rhos, y=traces_, mode=mode,
+            name=opt.upper(),
+            line=dict(color=style.get("color", "gray")),
+            marker=dict(color=style.get("color", "gray"), size=8),
+        ))
 
-    ax.set_xlabel("Perturbation radius ρ", fontsize=12)
-    ax.set_ylabel("tr(H) / d  (sharpness)", fontsize=12)
-    ax.set_title("Sharpness vs ρ (ResNet-18 / CIFAR-10)", fontsize=12)
-    ax.legend(fontsize=9)
-    ax.grid(True, alpha=0.3)
-    path = os.path.join(out_dir, "sharpness_vs_rho.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig.update_layout(
+        title="Sharpness vs ρ (ResNet-18 / CIFAR-10)",
+        xaxis_title="Perturbation radius ρ",
+        yaxis_title="tr(H) / d  (sharpness)",
+        template="plotly_white",
+        legend=dict(x=0.01, y=0.99),
+    )
+    path = os.path.join(out_dir, "sharpness_vs_rho.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
 
 
 def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> None:
-    histories = {k: (np.array(v[0]), np.array(v[1])) for k, v in landscape.items()}
-    # Colour by optimizer family
-    styled: dict[str, tuple] = {}
-    for k, (alphas, losses) in histories.items():
-        styled[k] = (alphas, losses)
+    Z_CLIP = 5.0
+    keys = sorted(landscape.keys())
+    n = len(keys)
+    ncols = 4
+    nrows = (n + ncols - 1) // ncols
+    titles = [k.replace("_rho", " ρ=") for k in keys]
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    for key, (alphas, losses) in sorted(styled.items()):
-        opt = _opt_from_key(key)
-        style = OPT_STYLE.get(opt, {})
-        ax.plot(alphas, losses, color=style.get("color", "gray"),
-                linestyle=style.get("linestyle", "-"), alpha=0.7,
-                linewidth=1.5, label=key.replace("_rho", " ρ="))
-    ax.set_xlabel("Perturbation α", fontsize=11)
-    ax.set_ylabel("Loss", fontsize=11)
-    ax.set_title("1D Loss Landscape — All Checkpoints", fontsize=11)
-    ax.legend(fontsize=7, ncol=2)
-    ax.grid(True, alpha=0.3)
-    path = os.path.join(out_dir, "landscape_all.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig = make_subplots(
+        rows=nrows, cols=ncols,
+        subplot_titles=titles,
+        horizontal_spacing=0.06,
+        vertical_spacing=0.12,
+    )
+    for idx, key in enumerate(keys):
+        alphas, betas, losses = landscape[key]
+        Z = np.clip(np.array(losses), 0, Z_CLIP).T
+        row, col = idx // ncols + 1, idx % ncols + 1
+        fig.add_trace(go.Contour(
+            z=Z.tolist(),
+            x=alphas if isinstance(alphas, list) else alphas.tolist(),
+            y=betas if isinstance(betas, list) else betas.tolist(),
+            colorscale="Viridis",
+            showscale=(idx == 0),
+            contours=dict(showlabels=False),
+            line_smoothing=0.85,
+        ), row=row, col=col)
+
+    fig.update_layout(
+        title="2D Loss Landscape — All Checkpoints",
+        template="plotly_white",
+        height=320 * nrows,
+    )
+    path = os.path.join(out_dir, "landscape_all.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
 
 
 def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
-    """One line per optimizer family using the sharpest-minimum (flattest) ρ."""
+    """2×2 contour grid — best ρ per optimizer (lowest centre loss)."""
     from collections import defaultdict
+    Z_CLIP = 5.0
     by_opt: dict[str, list] = defaultdict(list)
-    for key, (alphas, losses) in landscape.items():
+    for key, (alphas, betas, losses) in landscape.items():
         opt = _opt_from_key(key)
         rho = float(key.split("rho")[1])
-        # Use centre loss (index 25 = α=0) as sharpness proxy; pick flattest
-        centre_loss = np.array(losses)[len(losses) // 2]
-        by_opt[opt].append((centre_loss, rho, key, alphas, losses))
+        losses_arr = np.array(losses)
+        mid = losses_arr.shape[0] // 2
+        centre_loss = losses_arr[mid, mid]
+        by_opt[opt].append((centre_loss, rho, alphas, betas, losses))
 
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    for opt in ("sgd", "sam", "msam", "asam"):
-        if opt not in by_opt:
-            continue
-        # Pick the flattest minimum = smallest centre loss (most regularised)
+    opt_order = [o for o in ("sgd", "sam", "msam", "asam") if o in by_opt]
+    ncols = 2
+    nrows = (len(opt_order) + ncols - 1) // ncols
+    titles = []
+    best_data = []
+    for opt in opt_order:
         best = min(by_opt[opt], key=lambda x: x[0])
-        _, rho, key, alphas, losses = best
-        style = OPT_STYLE.get(opt, {})
-        label = f"{opt.upper()} ρ={rho}" if opt != "sgd" else "SGD"
-        ax.plot(np.array(alphas), np.array(losses),
-                color=style.get("color", "gray"),
-                linestyle=style.get("linestyle", "-"),
-                linewidth=2, label=label)
+        _, rho, alphas, betas, losses = best
+        titles.append(f"{opt.upper()} ρ={rho}" if opt != "sgd" else "SGD")
+        best_data.append((alphas, betas, losses))
 
-    ax.set_xlabel("Perturbation α", fontsize=11)
-    ax.set_ylabel("Loss", fontsize=11)
-    ax.set_title("1D Loss Landscape — Best ρ per Optimizer", fontsize=11)
-    ax.legend(fontsize=9)
-    ax.grid(True, alpha=0.3)
-    path = os.path.join(out_dir, "landscape_best.png")
-    fig.savefig(path, bbox_inches="tight", dpi=150)
-    plt.close(fig)
+    fig = make_subplots(
+        rows=nrows, cols=ncols,
+        specs=[[{"type": "scene"} for _ in range(ncols)] for _ in range(nrows)],
+        subplot_titles=titles,
+        horizontal_spacing=0.05,
+        vertical_spacing=0.08,
+    )
+    for idx, (alphas, betas, losses) in enumerate(best_data):
+        Z = np.clip(np.array(losses), 0, Z_CLIP).T
+        row, col = idx // ncols + 1, idx % ncols + 1
+        fig.add_trace(go.Surface(
+            z=Z.tolist(),
+            x=alphas if isinstance(alphas, list) else alphas.tolist(),
+            y=betas if isinstance(betas, list) else betas.tolist(),
+            colorscale="RdBu_r",
+            showscale=(idx == 0),
+            colorbar=dict(title="Loss", x=1.02),
+        ), row=row, col=col)
+
+    # Apply consistent camera angle to all scene axes
+    scene_cfg = dict(
+        xaxis_title="α", yaxis_title="β", zaxis_title="Loss",
+        camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+    )
+    scene_updates = {}
+    for idx in range(len(best_data)):
+        key = "scene" if idx == 0 else f"scene{idx + 1}"
+        scene_updates[key] = scene_cfg
+
+    fig.update_layout(
+        title="2D Loss Landscape — Best ρ per Optimizer",
+        template="plotly_white",
+        height=520 * nrows,
+        **scene_updates,
+    )
+    path = os.path.join(out_dir, "landscape_best.html")
+    fig.write_html(path)
     print(f"Saved → {path}")
 
 
