@@ -185,7 +185,7 @@ def plot_loss_landscape_2d(
     losses: np.ndarray,
     title: str = "2D Loss Landscape",
     save_path: str | None = None,
-    z_clip: float | None = 5.0,
+    z_clip: float | None = None,
 ) -> go.Figure:
     """Plot a single 2D loss landscape as a filled contour figure.
 
@@ -195,7 +195,7 @@ def plot_loss_landscape_2d(
         losses: 2D array of shape (len(alphas), len(betas)), losses[i, j] = L(α_i, β_j).
         title:  Figure title.
         save_path: If given, save as HTML (replaces .png suffix if present).
-        z_clip: Clip loss values above this threshold for display clarity.
+        z_clip: Clip loss values above this threshold (None = no clipping).
     """
     # plotly Surface: z[i][j] = value at (x[j], y[i]) → transpose losses
     Z = np.clip(losses, 0, z_clip).T if z_clip is not None else losses.T

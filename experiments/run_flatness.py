@@ -67,7 +67,7 @@ def _analyse_one(
     """Returns (trace, alphas_list, betas_list, losses_2d_list)."""
     trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=1.0)
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=2.0)
     return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
@@ -230,37 +230,44 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
 
 
 def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> None:
-    Z_CLIP = 5.0
     keys = sorted(landscape.keys())
     n = len(keys)
     ncols = 4
     nrows = (n + ncols - 1) // ncols
     titles = [k.replace("_rho", " ρ=") for k in keys]
 
+    specs = [[{"type": "scene"} for _ in range(ncols)] for _ in range(nrows)]
     fig = make_subplots(
         rows=nrows, cols=ncols,
         subplot_titles=titles,
-        horizontal_spacing=0.06,
-        vertical_spacing=0.12,
+        specs=specs,
+        horizontal_spacing=0.04,
+        vertical_spacing=0.08,
     )
+    scene_updates = {}
     for idx, key in enumerate(keys):
         alphas, betas, losses = landscape[key]
-        Z = np.clip(np.array(losses), 0, Z_CLIP).T
+        Z = np.array(losses)
         row, col = idx // ncols + 1, idx % ncols + 1
-        fig.add_trace(go.Contour(
+        fig.add_trace(go.Surface(
             z=Z.tolist(),
             x=alphas if isinstance(alphas, list) else alphas.tolist(),
             y=betas if isinstance(betas, list) else betas.tolist(),
-            colorscale="Viridis",
+            colorscale="RdBu_r",
             showscale=(idx == 0),
-            contours=dict(showlabels=False),
-            line_smoothing=0.85,
+            contours=dict(z=dict(show=True, usecolormap=True, project_z=True)),
         ), row=row, col=col)
+        scene_key = "scene" if idx == 0 else f"scene{idx + 1}"
+        scene_updates[scene_key] = dict(
+            xaxis_title="α", yaxis_title="β", zaxis_title="Loss",
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
+        )
 
     fig.update_layout(
-        title="2D Loss Landscape — All Checkpoints",
+        title="3D Loss Landscape — All Checkpoints",
         template="plotly_white",
-        height=320 * nrows,
+        height=380 * nrows,
+        **scene_updates,
     )
     path = os.path.join(out_dir, "landscape_all.html")
     fig.write_html(path)
@@ -270,7 +277,6 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
 def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
     """2×2 contour grid — best ρ per optimizer (lowest centre loss)."""
     from collections import defaultdict
-    Z_CLIP = 5.0
     by_opt: dict[str, list] = defaultdict(list)
     for key, (alphas, betas, losses) in landscape.items():
         opt = _opt_from_key(key)
@@ -299,7 +305,7 @@ def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
         vertical_spacing=0.08,
     )
     for idx, (alphas, betas, losses) in enumerate(best_data):
-        Z = np.clip(np.array(losses), 0, Z_CLIP).T
+        Z = np.array(losses).T
         row, col = idx // ncols + 1, idx % ncols + 1
         fig.add_trace(go.Surface(
             z=Z.tolist(),
