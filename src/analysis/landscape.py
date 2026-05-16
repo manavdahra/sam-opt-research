@@ -185,7 +185,7 @@ def plot_loss_landscape_2d(
     losses: np.ndarray,
     title: str = "2D Loss Landscape",
     save_path: str | None = None,
-    z_clip: float | None = None,
+    z_clip: float | None = 5.0,
 ) -> go.Figure:
     """Plot a single 2D loss landscape as a filled contour figure.
 

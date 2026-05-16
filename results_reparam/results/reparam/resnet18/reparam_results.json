@@ -1,0 +1,402 @@
+[
+  {
+    "model": "resnet18",
+    "optimizer": "sgd",
+    "alpha": 0.1,
+    "test_acc_mean": 0.9456,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0017319688098877668,
+        "train_acc": 1.0,
+        "test_loss": 0.196969371509552,
+        "test_acc": 0.9456,
+        "seed": 42,
+        "optimizer": "sgd",
+        "alpha": 0.1,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sgd",
+    "alpha": 0.5,
+    "test_acc_mean": 0.9511,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0015370474611222744,
+        "train_acc": 0.99996,
+        "test_loss": 0.18361656761169434,
+        "test_acc": 0.9511,
+        "seed": 42,
+        "optimizer": "sgd",
+        "alpha": 0.5,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sgd",
+    "alpha": 1.0,
+    "test_acc_mean": 0.9516,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0014719372034072875,
+        "train_acc": 1.0,
+        "test_loss": 0.18286479828357696,
+        "test_acc": 0.9516,
+        "seed": 42,
+        "optimizer": "sgd",
+        "alpha": 1.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sgd",
+    "alpha": 2.0,
+    "test_acc_mean": 0.9539,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0015502720341831445,
+        "train_acc": 0.99994,
+        "test_loss": 0.17147343864440917,
+        "test_acc": 0.9539,
+        "seed": 42,
+        "optimizer": "sgd",
+        "alpha": 2.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sgd",
+    "alpha": 10.0,
+    "test_acc_mean": 0.9528,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0015314781546220183,
+        "train_acc": 0.99998,
+        "test_loss": 0.18366085834503174,
+        "test_acc": 0.9528,
+        "seed": 42,
+        "optimizer": "sgd",
+        "alpha": 10.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sam",
+    "alpha": 0.1,
+    "test_acc_mean": 0.9531,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.016587728512883187,
+        "train_acc": 0.99568,
+        "test_loss": 0.15458456354141234,
+        "test_acc": 0.9531,
+        "seed": 42,
+        "optimizer": "sam",
+        "alpha": 0.1,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sam",
+    "alpha": 0.5,
+    "test_acc_mean": 0.9592,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.011807481793165207,
+        "train_acc": 0.99696,
+        "test_loss": 0.13536372890472412,
+        "test_acc": 0.9592,
+        "seed": 42,
+        "optimizer": "sam",
+        "alpha": 0.5,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sam",
+    "alpha": 1.0,
+    "test_acc_mean": 0.9568,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.011607267569303513,
+        "train_acc": 0.9972,
+        "test_loss": 0.1416846423149109,
+        "test_acc": 0.9568,
+        "seed": 42,
+        "optimizer": "sam",
+        "alpha": 1.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sam",
+    "alpha": 2.0,
+    "test_acc_mean": 0.9565,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.011400963735580444,
+        "train_acc": 0.99744,
+        "test_loss": 0.14005547289848327,
+        "test_acc": 0.9565,
+        "seed": 42,
+        "optimizer": "sam",
+        "alpha": 2.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "sam",
+    "alpha": 10.0,
+    "test_acc_mean": 0.9578,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.010991677595376968,
+        "train_acc": 0.99732,
+        "test_loss": 0.1407530527114868,
+        "test_acc": 0.9578,
+        "seed": 42,
+        "optimizer": "sam",
+        "alpha": 10.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "asam",
+    "alpha": 0.1,
+    "test_acc_mean": 0.9517,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.00490282565176487,
+        "train_acc": 0.9991,
+        "test_loss": 0.16070838384628297,
+        "test_acc": 0.9517,
+        "seed": 42,
+        "optimizer": "asam",
+        "alpha": 0.1,
+        "rho": 0.5
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "asam",
+    "alpha": 0.5,
+    "test_acc_mean": 0.9587,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.00329952148526907,
+        "train_acc": 0.99956,
+        "test_loss": 0.14167315244674683,
+        "test_acc": 0.9587,
+        "seed": 42,
+        "optimizer": "asam",
+        "alpha": 0.5,
+        "rho": 0.5
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "asam",
+    "alpha": 1.0,
+    "test_acc_mean": 0.9566,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0030733477436751125,
+        "train_acc": 0.99958,
+        "test_loss": 0.14222191174030305,
+        "test_acc": 0.9566,
+        "seed": 42,
+        "optimizer": "asam",
+        "alpha": 1.0,
+        "rho": 0.5
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "asam",
+    "alpha": 2.0,
+    "test_acc_mean": 0.9528,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0033944446727633476,
+        "train_acc": 0.99944,
+        "test_loss": 0.16193997263908386,
+        "test_acc": 0.9528,
+        "seed": 42,
+        "optimizer": "asam",
+        "alpha": 2.0,
+        "rho": 0.5
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "asam",
+    "alpha": 10.0,
+    "test_acc_mean": 0.9533,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.003430927980095148,
+        "train_acc": 0.99952,
+        "test_loss": 0.16154542655944823,
+        "test_acc": 0.9533,
+        "seed": 42,
+        "optimizer": "asam",
+        "alpha": 10.0,
+        "rho": 0.5
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "msam",
+    "alpha": 0.1,
+    "test_acc_mean": 0.9517,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.01657522383034229,
+        "train_acc": 0.99586,
+        "test_loss": 0.15791037211418152,
+        "test_acc": 0.9517,
+        "seed": 42,
+        "optimizer": "msam",
+        "alpha": 0.1,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "msam",
+    "alpha": 0.5,
+    "test_acc_mean": 0.9582,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.012648834067583084,
+        "train_acc": 0.99694,
+        "test_loss": 0.14229717378616333,
+        "test_acc": 0.9582,
+        "seed": 42,
+        "optimizer": "msam",
+        "alpha": 0.5,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "msam",
+    "alpha": 1.0,
+    "test_acc_mean": 0.959,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.011315092506408692,
+        "train_acc": 0.9972,
+        "test_loss": 0.13595086407661439,
+        "test_acc": 0.959,
+        "seed": 42,
+        "optimizer": "msam",
+        "alpha": 1.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "msam",
+    "alpha": 2.0,
+    "test_acc_mean": 0.9579,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.0116159455960989,
+        "train_acc": 0.99708,
+        "test_loss": 0.13759656739234924,
+        "test_acc": 0.9579,
+        "seed": 42,
+        "optimizer": "msam",
+        "alpha": 2.0,
+        "rho": 0.05
+      }
+    ]
+  },
+  {
+    "model": "resnet18",
+    "optimizer": "msam",
+    "alpha": 10.0,
+    "test_acc_mean": 0.9575,
+    "test_acc_sem": 0.0,
+    "per_seed": [
+      {
+        "epoch": 200,
+        "train_loss": 0.01223603073000908,
+        "train_acc": 0.99716,
+        "test_loss": 0.14196136422157288,
+        "test_acc": 0.9575,
+        "seed": 42,
+        "optimizer": "msam",
+        "alpha": 10.0,
+        "rho": 0.05
+      }
+    ]
+  }
+]

@@ -63,17 +63,18 @@ def _analyse_one(
     test_loader,
     device: torch.device,
     n_samples: int = 20,
+    max_batch: int = 64,
 ) -> tuple[float, list, list, list]:
     """Returns (trace, alphas_list, betas_list, losses_2d_list)."""
-    trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples)
+    trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=2.0)
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=1.0)
     return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
 # ── single-checkpoint mode ───────────────────────────────────────────────────
 
-def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_samples: int = 20) -> None:
+def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_samples: int = 20, max_batch: int = 64) -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -90,7 +91,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
     model = _load_checkpoint(checkpoint, cfg, device)
-    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples)
+    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
 
     os.makedirs(out_dir, exist_ok=True)
     save_results(os.path.join(out_dir, "sharpness.json"), {name: trace})
@@ -105,7 +106,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
 
 # ── batch mode ───────────────────────────────────────────────────────────────
 
-def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_samples: int = 20) -> None:
+def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_samples: int = 20, max_batch: int = 64) -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -143,7 +144,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         key = f"{e['opt']}_rho{e['rho']}"
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
-        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples)
+        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
         sharpness_all[key] = trace
         landscape_all[key] = (alphas, betas, losses)
         # Incremental save after each checkpoint
@@ -230,6 +231,7 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
 
 
 def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> None:
+    Z_CLIP = 5.0
     keys = sorted(landscape.keys())
     n = len(keys)
     ncols = 4
@@ -247,7 +249,7 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
     scene_updates = {}
     for idx, key in enumerate(keys):
         alphas, betas, losses = landscape[key]
-        Z = np.array(losses)
+        Z = np.clip(np.array(losses), 0, Z_CLIP)
         row, col = idx // ncols + 1, idx % ncols + 1
         fig.add_trace(go.Surface(
             z=Z.tolist(),
@@ -277,6 +279,7 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
 def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
     """2×2 contour grid — best ρ per optimizer (lowest centre loss)."""
     from collections import defaultdict
+    Z_CLIP = 5.0
     by_opt: dict[str, list] = defaultdict(list)
     for key, (alphas, betas, losses) in landscape.items():
         opt = _opt_from_key(key)
@@ -305,7 +308,7 @@ def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
         vertical_spacing=0.08,
     )
     for idx, (alphas, betas, losses) in enumerate(best_data):
-        Z = np.array(losses).T
+        Z = np.clip(np.array(losses), 0, Z_CLIP).T
         row, col = idx // ncols + 1, idx % ncols + 1
         fig.add_trace(go.Surface(
             z=Z.tolist(),
@@ -350,6 +353,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--n-samples", type=int, default=20,
                         help="Rademacher samples for Hutchinson trace (default: 20)")
+    parser.add_argument("--max-batch", type=int, default=64,
+                        help="Images per Hessian estimate (default: 64)")
     args = parser.parse_args()
 
     if args.ckpt_dir:
@@ -359,7 +364,7 @@ if __name__ == "__main__":
             _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
             _cfg["model"],
         )
-        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples)
+        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch)
     elif args.checkpoint:
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)
@@ -367,6 +372,6 @@ if __name__ == "__main__":
             _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
             _cfg["model"],
         )
-        main_single(args.config, args.checkpoint, args.seed, _out, args.n_samples)
+        main_single(args.config, args.checkpoint, args.seed, _out, args.n_samples, args.max_batch)
     else:
         parser.error("Provide either --checkpoint or --ckpt-dir.")
