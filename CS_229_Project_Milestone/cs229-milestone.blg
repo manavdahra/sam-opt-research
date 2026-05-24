@@ -23,45 +23,45 @@ Warning--page numbers missing in both pages and numpages fields in krizhevsky200
 Warning--empty publisher in kwon2021asam
 Warning--empty address in kwon2021asam
 Warning--page numbers missing in both pages and numpages fields in kwon2021asam
-You've used 5 entries,
+You've used 6 entries,
             6273 wiz_defined-function locations,
-            1546 strings with 19182 characters,
-and the built_in function-call counts, 4908 in all, are:
-= -- 521
-> -- 165
+            1553 strings with 19390 characters,
+and the built_in function-call counts, 6108 in all, are:
+= -- 723
+> -- 182
 < -- 0
-+ -- 54
-- -- 57
-* -- 358
-:= -- 482
-add.period$ -- 22
-call.type$ -- 5
-change.case$ -- 36
-chr.to.int$ -- 5
-cite$ -- 16
-duplicate$ -- 452
-empty$ -- 328
-format.name$ -- 73
-if$ -- 1137
++ -- 60
+- -- 64
+* -- 421
+:= -- 580
+add.period$ -- 27
+call.type$ -- 6
+change.case$ -- 41
+chr.to.int$ -- 6
+cite$ -- 17
+duplicate$ -- 560
+empty$ -- 404
+format.name$ -- 80
+if$ -- 1463
 int.to.chr$ -- 2
 int.to.str$ -- 1
-missing$ -- 18
-newline$ -- 97
-num.names$ -- 35
-pop$ -- 221
+missing$ -- 22
+newline$ -- 105
+num.names$ -- 42
+pop$ -- 254
 preamble$ -- 1
-purify$ -- 75
+purify$ -- 88
 quote$ -- 0
-skip$ -- 155
+skip$ -- 193
 stack$ -- 0
-substring$ -- 270
-swap$ -- 21
+substring$ -- 385
+swap$ -- 35
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 122
+type$ -- 138
 warning$ -- 11
-while$ -- 23
+while$ -- 33
 width$ -- 0
-write$ -- 145
+write$ -- 164
 (There were 11 warnings)

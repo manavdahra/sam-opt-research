@@ -26,7 +26,7 @@
 % Custom title format for one-page document without the project title
 \renewcommand{\maketitle}{
   \begin{center}
-    {\bf \large Testing Invariance and Generalization of Geometry-Aware Sharpness Minimization Methods}\\
+    {\bf \large Geometry-Aware Sharpness Minimization: Invariance and Generalization in SAM Variants}\\
     \vspace{0.1cm}
     {\bf Team Members:} Manav Dahra\\
     \vspace{0.1cm}
@@ -53,35 +53,11 @@ We implement three optimizers from scratch (SAM, ASAM, M-SAM) and compare them u
 
 \textbf{SGD} serves as the reference baseline: vanilla stochastic gradient descent with momentum and weight decay, trained with a cosine-annealing learning rate schedule.
 
-\textbf{SAM} \citep{foret2021sam} augments SGD with a two-step update. In the first step the parameters are perturbed to the approximate local loss maximum within an $\ell_2$ ball of radius $\rho$:
-\[
-  \hat{\epsilon}(w) = \rho \cdot \frac{\nabla_w \mathcal{L}(w)}{\|\nabla_w \mathcal{L}(w)\|_2},
-\]
-and in the second step the base SGD update is applied at the perturbed point:
-\[
-  w_{t+1} = w_t - \eta \, \nabla_w \mathcal{L}(w_t + \hat{\epsilon}(w_t)).
-\]
-Because the perturbation is defined in Euclidean space it is \emph{not} invariant to function-preserving rescalings of the weights.
+\textbf{SAM} \citep{foret2021sam} augments SGD with a two-step update: parameters are first perturbed to the approximate local loss maximum within an $\ell_2$ ball of radius $\rho$, then a standard gradient step is taken at the perturbed point. Because the perturbation is defined in Euclidean space it is \emph{not} invariant to function-preserving rescalings of the weights.
 
-\textbf{ASAM} \citep{kwon2021asam} addresses this by replacing the $\ell_2$ norm with an adaptive (parameter-scaled) norm.  The perturbation becomes
-\[
-  \hat{\epsilon}_\text{ASAM}(w) = \rho \cdot \frac{T_w^2 \nabla_w \mathcal{L}(w)}{\|T_w \nabla_w \mathcal{L}(w)\|_2},
-\]
-where $T_w = \mathrm{diag}(|w| + \eta)$ with a small floor $\eta=0.01$, and the weight update is:
-\[
-  w_{t+1} = w_t - \eta \, \nabla_w \mathcal{L}(w_t + \hat{\epsilon}_\text{ASAM}(w_t)).
-\]
-Multiplying the perturbation by $|w|^2$ makes it scale-invariant: if every weight is multiplied by a scalar $\alpha$, $\hat{\epsilon}_\text{ASAM}$ is unchanged.  Our implementation exactly follows this formula.
+\textbf{ASAM} \citep{kwon2021asam} addresses this by replacing the $\ell_2$ norm with an adaptive (parameter-scaled) norm $T_w = \mathrm{diag}(|w| + \eta)$, making the perturbation scale-invariant: if every weight is multiplied by a scalar $\alpha$, the perturbation is unchanged.
 
-\textbf{M-SAM} \citep{jacobsen2025msam} takes a Riemannian geometry perspective.  The loss is viewed as a function on the model-function manifold; the Monge metric on that manifold yields a correction factor $1/\sqrt{1 + \|\nabla_w \mathcal{L}(w)\|_2^2}$ applied to the SAM perturbation:
-\[
-  \hat{\epsilon}_\text{MSAM}(w) = \frac{\rho}{\|\nabla_w \mathcal{L}(w)\|_2} \cdot \frac{1}{\sqrt{1 + \|\nabla_w \mathcal{L}(w)\|_2^2}} \cdot \nabla_w \mathcal{L}(w),
-\]
-with the weight update:
-\[
-  w_{t+1} = w_t - \eta \, \nabla_w \mathcal{L}(w_t + \hat{\epsilon}_\text{MSAM}(w_t)).
-\]
-This factor shrinks large-gradient perturbations, promoting geometry-aware and reparametrization-robust updates.
+\textbf{M-SAM} \citep{jacobsen2025msam} takes a Riemannian geometry perspective.  The Monge metric on the model-function manifold yields a correction factor $1/\sqrt{1 + \|\nabla_w \mathcal{L}(w)\|_2^2}$ applied to the SAM perturbation, shrinking large-gradient perturbations and promoting geometry-aware, reparametrization-robust updates.
 
 \textbf{Model and Dataset.}
 We use \textbf{ResNet-18} \citep{he2016resnet} adapted for CIFAR-10 \citep{krizhevsky2009cifar}: the standard ImageNet stem (7$\times$7 conv, stride 2, max-pool) is replaced with a 3$\times$3 stride-1 conv and an identity layer to retain spatial resolution for 32$\times$32 inputs.  The final fully-connected layer maps from 512 to 10 classes.  All experiments use a single random seed (seed 42) at this stage; multi-seed evaluation is planned for the final report.
@@ -98,71 +74,44 @@ For both SAM variants two forward–backward passes are performed per iteration.
 Same protocol will be applied to ViT-B/32 on CIFAR-10 as a stretch goal, pending resolution of the GELU reparametrization issue.
 
 \textbf{Evaluation Metrics.}
-We track final test accuracy, training accuracy, cross-entropy loss curves, and the \emph{divergence rate} $\Delta = \mathcal{L}_\text{test} - \mathcal{L}_\text{train}$ as a proxy for generalization gap. For reparametrization invariance we measure the variance of final test accuracy across scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ applied to a function-preserving ReLU-layer rescaling.  Sharpness will be estimated via the Hutchinson stochastic trace estimator $\mathrm{tr}(H)/d$ with Rademacher vectors, which avoids forming the full Hessian.
-
+We track final test accuracy, training accuracy, cross-entropy loss curves, and the \emph{divergence rate} $\Delta = \mathcal{L}_\text{test} - \mathcal{L}_\text{train}$ as a proxy for generalization gap. For reparametrization invariance we measure the variance of final test accuracy across scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ applied to a function-preserving ReLU-layer rescaling.  Sharpness will be estimated via the Hutchinson stochastic trace estimator \citep{hutchinson1989stochastic} $\mathrm{tr}(H)/d$ with Rademacher vectors, which avoids forming the full Hessian.
 
 \section{Preliminary Experiments and Results}
 
 \textbf{Baseline Training.}
-We have completed the full baseline sweep (200 epochs each) for all four optimizer (SGD, SAM, ASAM, M-SAM) families on ResNet-18/CIFAR-10, producing 12 checkpoint files: SGD ($\rho{=}0$), SAM at five $\rho$ values, ASAM at $\rho{=}0.5$, and M-SAM at five $\rho$ values.  All models reach 100\% training accuracy.
+We have completed the full baseline sweep (200 epochs each) for all four optimizer (SGD, SAM, ASAM, M-SAM) families on ResNet-18/CIFAR-10, producing 12 checkpoint files: SGD ($\rho{=}0$), SAM at five $\rho$ values, ASAM at $\rho{=}0.5$, and M-SAM at five $\rho$ values.  All models reach 100\% training accuracy.  Tables~\ref{tab:baseline_full} and~\ref{tab:sharpness} report test accuracy, divergence rate, and Hutchinson sharpness for every configuration; loss landscapes are in the Appendix.
 
-Table~\ref{tab:baseline_full} reports test accuracy and divergence rate $\Delta$ for every configuration.
-
-\begin{figure}[H]
+\begin{table}[H]
+\centering\scriptsize
+\begin{minipage}[t]{0.45\textwidth}
 \centering
-\begin{minipage}[t]{0.44\textwidth}
-\vspace{0pt}\centering
-\captionof{table}{Full baseline results on ResNet-18/CIFAR-10 (200 epochs, seed 42). Best row per optimizer in bold.}
+\caption{Full baseline results on ResNet-18/CIFAR-10 (200 epochs, seed 42). Best row per optimizer shown in bold.}
 \label{tab:baseline_full}
 \begin{tabular}{llcc}
 \toprule
-Optimizer & $\rho$ & Acc (\%) & $\Delta$ \\
+Optimizer & $\rho$ & Test Acc (\%) & Div.\ Rate $\Delta$ \\
 \midrule
-SGD      & 0.000 & 95.46 & 0.1777 \\
+SGD      & 0.000 & 95.46          & 0.1777 \\
 \midrule
 \textbf{SAM} & \textbf{0.020} & \textbf{95.75} & \textbf{0.1494} \\
-SAM      & 0.005 & 95.23 & 0.1784 \\
-SAM      & 0.010 & 95.31 & 0.1729 \\
-SAM      & 0.030 & 95.70 & 0.1473 \\
-SAM      & 0.050 & 95.55 & 0.1407 \\
+SAM      & 0.005 & 95.23          & 0.1784 \\
+SAM      & 0.010 & 95.31          & 0.1729 \\
+SAM      & 0.030 & 95.70          & 0.1473 \\
+SAM      & 0.050 & 95.55          & 0.1407 \\
 \midrule
 \textbf{ASAM} & \textbf{0.500} & \textbf{95.79} & \textbf{0.1440} \\
 \midrule
-M-SAM    & 0.005 & 95.47 & 0.1736 \\
-M-SAM    & 0.010 & 95.50 & 0.1683 \\
-M-SAM    & 0.020 & 95.64 & 0.1559 \\
+M-SAM    & 0.005 & 95.47          & 0.1736 \\
+M-SAM    & 0.010 & 95.50          & 0.1683 \\
+M-SAM    & 0.020 & 95.64          & 0.1559 \\
 \textbf{M-SAM} & \textbf{0.030} & \textbf{95.76} & \textbf{0.1451} \\
-M-SAM    & 0.050 & 95.75 & 0.1384 \\
+M-SAM    & 0.050 & 95.75          & 0.1384 \\
 \bottomrule
 \end{tabular}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.53\textwidth}
-\vspace{0pt}\centering
-\includegraphics[width=\linewidth]{../results/results/baseline/resnet18/baseline_gen_gap.png}
-\captionof{figure}{Generalization gap analysis (ResNet-18/CIFAR-10, seed 42). \emph{Left}: divergence rate vs.\ $\rho$; M-SAM consistently lower. \emph{Right}: best-$\rho$ per optimizer vs.\ SGD (0.1777). M-SAM at $\rho{=}0.05$ achieves the largest reduction ($-$22\%).}
-\label{fig:baseline_gen_gap}
-\end{minipage}
-\end{figure}
-
-\textbf{Sharpness and Flatness Analysis.}
-We ran the Hutchinson stochastic trace estimator ($n{=}20$ Rademacher vectors, max batch 64) on all 12 checkpoints and computed 2D loss landscapes using two Gram-Schmidt-orthogonalized filter-normalized random directions (31$\times$31 grid, $\alpha,\beta \in [-1, 1]$).  Table~\ref{tab:sharpness} reports $\mathrm{tr}(H)/d$ for each configuration; Figure~\ref{fig:landscape} shows the 3D surface landscape for the best checkpoint per optimizer.
-
-\begin{figure}[H]
+\begin{minipage}[t]{0.45\textwidth}
 \centering
-\begin{minipage}[t]{0.54\textwidth}
-\vspace{0pt}\centering
-\begin{tabular}{cc}
-  \includegraphics[width=0.49\linewidth]{../results/results/sgd_landscape.png} &
-  \includegraphics[width=0.49\linewidth]{../results/results/sam_landscape.png} \\
-  \includegraphics[width=0.49\linewidth]{../results/results/asam_landscape.png} &
-  \includegraphics[width=0.49\linewidth]{../results/results/msam_landscape.png} \\
-\end{tabular}
-\captionof{figure}{3D filter-normalized loss landscapes for the best checkpoint per optimizer (ResNet-18/CIFAR-10). Filter-normalized directions span a $31{\times}31$ grid over $\alpha,\beta \in [-1,1]$. M-SAM and ASAM show broader, flatter basins.}
-\label{fig:landscape}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.43\textwidth}
-\vspace{0pt}\centering
-\captionof{table}{Hutchinson $\mathrm{tr}(H)/d$ for all 12 checkpoints. Lower is flatter.}
+\caption{Hutchinson $\mathrm{tr}(H)/d$ for all 12 checkpoints. Lower is flatter.}
 \label{tab:sharpness}
 \begin{tabular}{llc}
 \toprule
@@ -186,9 +135,9 @@ M-SAM    & 0.030 & $2.61 \times 10^{-4}$ \\
 \bottomrule
 \end{tabular}
 \end{minipage}
-\end{figure}
+\end{table}
 
-Several observations stand out.  First, SAM at $\rho{=}0.005$ is \emph{sharper} than SGD ($6.35 \times 10^{-4}$ vs.\ $6.25 \times 10^{-4}$), confirming that an under-sized perturbation radius fails to flatten the loss landscape and can hurt generalization.  Second, M-SAM at $\rho{=}0.05$ achieves the lowest sharpness across all runs ($1.89 \times 10^{-4}$, approximately 70\% flatter than SGD), consistent with its best divergence rate.  Third, ASAM ($3.17 \times 10^{-4}$) is flatter than SGD and comparable to the best SAM setting, yet achieves the highest raw test accuracy, suggesting that its adaptive normalization improves generalization through a mechanism not fully captured by the scalar Hessian trace.  The full 3D loss landscapes for all 12 checkpoints are shown in Figure~\ref{fig:landscape_all} (Appendix).
+Several observations stand out.  First, SAM at $\rho{=}0.005$ is \emph{sharper} than SGD ($6.35 \times 10^{-4}$ vs.\ $6.25 \times 10^{-4}$), confirming that an under-sized perturbation radius fails to flatten the loss landscape and can hurt generalization.  Second, M-SAM at $\rho{=}0.05$ achieves the lowest sharpness across all runs ($1.89 \times 10^{-4}$, approximately 70\% flatter than SGD), consistent with its best divergence rate.  Third, ASAM ($3.17 \times 10^{-4}$) is flatter than SGD and comparable to the best SAM setting, yet achieves the highest raw test accuracy, suggesting that its adaptive normalization improves generalization through a mechanism not fully captured by the scalar Hessian trace.  The full 3D loss landscapes for all 12 checkpoints are shown in Figure~\ref{fig:landscape_all} (Appendix); per-optimizer best-checkpoint landscapes are in Figure~\ref{fig:landscape_per_opt}.
 
 \textbf{Infrastructure and Implementation Validation.}
 The training pipeline, data loading (HuggingFace CIFAR-10 cached locally), optimizer implementations, and checkpoint saving have all been validated.  The Hutchinson sharpness estimator and loss landscape visualizer are also implemented and unit-tested.
@@ -202,7 +151,7 @@ The $\alpha$ factor is injected by scaling BN1's affine parameters ($\gamma \lef
 ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so the reparametrization via simple weight scaling introduces a measurable output deviation ($\sim$0.06 per unit for $\alpha=2$). This issue is being investigated; a corrected formulation will be incorporated before the final report.
 \section{Next Steps}
 
-\begin{enumerate}
+\begin{enumerate}[noitemsep,topsep=2pt]
   \item \textbf{Reparametrization invariance experiment (Experiment 2).}  Run the full sweep: for each of the four optimizers, apply the five scaling factors $\alpha \in \{0.1, 0.5, 1.0, 2.0, 10.0\}$ to the ResNet-18 initialization and train for 200 epochs.  Report per-optimizer variance of final test accuracy across $\alpha$ values and test the hypothesis that SAM is most sensitive, ASAM is partially invariant, and M-SAM is most invariant.
 
   \item \textbf{Multi-seed evaluation.}  Re-run the best configurations (SAM $\rho{=}0.02$, ASAM $\rho{=}0.5$, M-SAM $\rho{=}0.05$, SGD) with seeds $\{0, 1, 2\}$ (in addition to seed 42) to obtain SEM estimates and statistically sound comparisons.  Current single-seed results show consistent trends but cannot support significance claims.
@@ -223,12 +172,35 @@ ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so
 \bibliography{reference}
 
 \appendix
-\section{Loss Landscapes — All Checkpoints}
+\section{Supplementary Figures}
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{../results/results/baseline/loss_landscape_all_ckpts.png}
-\caption{3D filter-normalized loss landscapes for all 12 checkpoints (SGD, SAM $\times$5, ASAM, M-SAM $\times$5) on ResNet-18/CIFAR-10. Directions are Gram-Schmidt-orthogonalized filter-normalized random vectors; grid is $31{\times}31$ over $\alpha,\beta \in [-1,1]$, clipped at loss $= 5.0$. Color encodes loss (blue = low, red = high).}
+\includegraphics[width=0.9\textwidth]{../results/results/baseline/loss_landscape_all_ckpts.png}
+\caption{3D filter-normalized loss landscapes for all 12 checkpoints (SGD, SAM $\times$5, ASAM, M-SAM $\times$5) on ResNet-18/CIFAR-10. Grid is $31{\times}31$ over $\alpha,\beta \in [-1,1]$, clipped at loss $= 5.0$. Color encodes loss (blue = low, red = high).}
 \label{fig:landscape_all}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}\centering
+\begin{tabular}{cc}
+  \includegraphics[width=0.49\linewidth]{../results/results/sgd_landscape.png} &
+  \includegraphics[width=0.49\linewidth]{../results/results/asam_landscape.png} \\
+  \small SGD & \small ASAM \\[2pt]
+  \includegraphics[width=0.49\linewidth]{../results/results/sam_landscape.png} &
+  \includegraphics[width=0.49\linewidth]{../results/results/msam_landscape.png} \\
+  \small SAM ($\rho{=}0.05$) & \small M-SAM ($\rho{=}0.05$) \\
+\end{tabular}
+\captionof{figure}{3D filter-normalized loss landscapes for the best checkpoint per optimizer (ResNet-18/CIFAR-10). ASAM and M-SAM show broader, flatter basins than SGD and SAM.}
+\label{fig:landscape_per_opt}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.43\textwidth}
+\vspace{0pt}\centering
+\includegraphics[width=\linewidth]{../results/results/baseline/resnet18/baseline_gen_gap.png}
+\captionof{figure}{Generalization gap analysis (ResNet-18/CIFAR-10, seed 42). \emph{Top}: divergence rate vs.\ $\rho$; M-SAM consistently lower. \emph{Bottom}: best-$\rho$ per optimizer vs.\ SGD. M-SAM at $\rho{=}0.05$ achieves the largest reduction ($-$22\%).}
+\label{fig:baseline_gen_gap}
+\end{minipage}
 \end{figure}
 % If you don't have a .bib file, you can use the following manual format:
 %\begin{thebibliography}{9}

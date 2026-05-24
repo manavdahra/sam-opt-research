@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  16 MAY 2026 05:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  16 MAY 2026 06:35
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -514,86 +514,86 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 56.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
+)
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 68.
+ (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 ) [1{/Users/manavdahra/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/enc/dvips/base/8r.enc}
 
 
 ]
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 92.
- (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-)
-<../results/results/baseline/resnet18/baseline_gen_gap.png, id=62, 2409.0pt x 1104.125pt>
-File: ../results/results/baseline/resnet18/baseline_gen_gap.png Graphic file (type png)
-<use ../results/results/baseline/resnet18/baseline_gen_gap.png>
-Package pdftex.def Info: ../results/results/baseline/resnet18/baseline_gen_gap.png  used on input line 141.
-(pdftex.def)             Requested size: 210.66655pt x 96.5534pt.
-
-Underfull \hbox (badness 1137) in paragraph at lines 142--142
-[]\T1/ptm/m/n/10 (+20) Figure 1: |Gen-er-al-iza-tion gap anal-y-sis (ResNet-
- []
-
-<../results/results/sgd_landscape.png, id=66, 376.40625pt x 453.695pt>
-File: ../results/results/sgd_landscape.png Graphic file (type png)
-<use ../results/results/sgd_landscape.png>
-Package pdftex.def Info: ../results/results/sgd_landscape.png  used on input line 155.
-(pdftex.def)             Requested size: 105.1744pt x 126.77066pt.
-<../results/results/sam_landscape.png, id=67, 468.75125pt x 463.7325pt>
-File: ../results/results/sam_landscape.png Graphic file (type png)
-<use ../results/results/sam_landscape.png>
-Package pdftex.def Info: ../results/results/sam_landscape.png  used on input line 156.
-(pdftex.def)             Requested size: 105.1744pt x 104.04518pt.
-<../results/results/asam_landscape.png, id=68, 429.605pt x 467.7475pt>
-File: ../results/results/asam_landscape.png Graphic file (type png)
-<use ../results/results/asam_landscape.png>
-Package pdftex.def Info: ../results/results/asam_landscape.png  used on input line 157.
-(pdftex.def)             Requested size: 105.1744pt x 114.50992pt.
-<../results/results/msam_landscape.png, id=69, 407.5225pt x 460.72125pt>
-File: ../results/results/msam_landscape.png Graphic file (type png)
-<use ../results/results/msam_landscape.png>
-Package pdftex.def Info: ../results/results/msam_landscape.png  used on input line 158.
-(pdftex.def)             Requested size: 105.1744pt x 118.89891pt.
-
-Overfull \hbox (19.7096pt too wide) in paragraph at lines 154--160
- [][] 
- []
-
-[2 <../results/results/baseline/resnet18/baseline_gen_gap.png>]
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `cmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
- [3{/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc} <../results/results/sgd_landscape.png> <../results/results/sam_landscape.png> <../results/results/asam_landscape.png> <../results/results/msam_landscape.png>] (./cs229-milestone.bbl
+ [2{/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}] (./cs229-milestone.bbl
 LaTeX Info: Redefining \tempurl on input line 57.
-LaTeX Info: Redefining \tempurl on input line 69.
-LaTeX Info: Redefining \tempurl on input line 81.
-LaTeX Info: Redefining \tempurl on input line 92.
+LaTeX Info: Redefining \tempurl on input line 77.
+LaTeX Info: Redefining \tempurl on input line 89.
+LaTeX Info: Redefining \tempurl on input line 100.
 )
-<../results/results/baseline/loss_landscape_all_ckpts.png, id=98, 1896.08376pt x 1144.275pt>
+<../results/results/baseline/loss_landscape_all_ckpts.png, id=88, 1896.08376pt x 1144.275pt>
 File: ../results/results/baseline/loss_landscape_all_ckpts.png Graphic file (type png)
 <use ../results/results/baseline/loss_landscape_all_ckpts.png>
-Package pdftex.def Info: ../results/results/baseline/loss_landscape_all_ckpts.png  used on input line 229.
-(pdftex.def)             Requested size: 397.48499pt x 239.86833pt.
- [4] [5 <../results/results/baseline/loss_landscape_all_ckpts.png>] (./cs229-milestone.aux)
+Package pdftex.def Info: ../results/results/baseline/loss_landscape_all_ckpts.png  used on input line 178.
+(pdftex.def)             Requested size: 357.73405pt x 215.878pt.
+ [3]
+<../results/results/sgd_landscape.png, id=100, 376.40625pt x 453.695pt>
+File: ../results/results/sgd_landscape.png Graphic file (type png)
+<use ../results/results/sgd_landscape.png>
+Package pdftex.def Info: ../results/results/sgd_landscape.png  used on input line 188.
+(pdftex.def)             Requested size: 105.1744pt x 126.77066pt.
+<../results/results/asam_landscape.png, id=101, 429.605pt x 467.7475pt>
+File: ../results/results/asam_landscape.png Graphic file (type png)
+<use ../results/results/asam_landscape.png>
+Package pdftex.def Info: ../results/results/asam_landscape.png  used on input line 189.
+(pdftex.def)             Requested size: 105.1744pt x 114.50992pt.
+<../results/results/sam_landscape.png, id=102, 468.75125pt x 463.7325pt>
+File: ../results/results/sam_landscape.png Graphic file (type png)
+<use ../results/results/sam_landscape.png>
+Package pdftex.def Info: ../results/results/sam_landscape.png  used on input line 191.
+(pdftex.def)             Requested size: 105.1744pt x 104.04518pt.
+<../results/results/msam_landscape.png, id=103, 407.5225pt x 460.72125pt>
+File: ../results/results/msam_landscape.png Graphic file (type png)
+<use ../results/results/msam_landscape.png>
+Package pdftex.def Info: ../results/results/msam_landscape.png  used on input line 192.
+(pdftex.def)             Requested size: 105.1744pt x 118.89891pt.
+
+Overfull \hbox (19.7096pt too wide) in paragraph at lines 187--195
+ [][] 
+ []
+
+<../results/results/baseline/resnet18/baseline_gen_gap.png, id=104, 2409.0pt x 1104.125pt>
+File: ../results/results/baseline/resnet18/baseline_gen_gap.png Graphic file (type png)
+<use ../results/results/baseline/resnet18/baseline_gen_gap.png>
+Package pdftex.def Info: ../results/results/baseline/resnet18/baseline_gen_gap.png  used on input line 200.
+(pdftex.def)             Requested size: 170.91562pt x 78.32434pt.
+
+Underfull \hbox (badness 1418) in paragraph at lines 201--201
+[]\T1/ptm/m/n/10 (+20) Figure 3: |Gen-er-al-iza-tion gap anal-y-sis
+ []
+
+[4 <../results/results/baseline/loss_landscape_all_ckpts.png> <../results/results/sgd_landscape.png> <../results/results/asam_landscape.png> <../results/results/sam_landscape.png> <../results/results/msam_landscape.png> <../results/results/baseline/resnet18/baseline_gen_gap.png>] (./cs229-milestone.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `cs229-milestone.out' has not changed.
-(rerunfilecheck)             Checksum: 83084CBFC01E9F30DF3C3D57E84BAA29;854.
+(rerunfilecheck)             Checksum: 273FFB83D5C0669C7FCA2FE0CCCF7427;782.
  ) 
 Here is how much of TeX's memory you used:
- 15079 strings out of 469296
- 244919 string characters out of 5464032
- 707662 words of memory out of 5000000
- 43542 multiletter control sequences out of 15000+600000
- 654810 words of font info for 163 fonts, out of 8000000 for 9000
+ 15141 strings out of 469296
+ 245859 string characters out of 5464032
+ 710554 words of memory out of 5000000
+ 43583 multiletter control sequences out of 15000+600000
+ 664406 words of font info for 185 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 75i,14n,79p,1082b,482s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on cs229-milestone.pdf (5 pages, 1194797 bytes).
+ 75i,14n,79p,1082b,474s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx5.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on cs229-milestone.pdf (4 pages, 1227095 bytes).
 PDF statistics:
- 179 PDF objects out of 1000 (max. 8388607)
- 132 compressed objects within 2 object streams
+ 198 PDF objects out of 1000 (max. 8388607)
+ 144 compressed objects within 2 object streams
  25 named destinations out of 1000 (max. 500000)
- 30287 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 40527 words of extra memory for PDF output out of 42996 (max. 10000000)
 
