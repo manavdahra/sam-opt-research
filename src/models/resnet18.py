@@ -42,21 +42,24 @@ def apply_relu_reparam(model: nn.Module, alpha: float) -> None:
         if not isinstance(module, tvm.resnet.BasicBlock):
             continue
 
-        conv1: nn.Conv2d = module.conv1
+        bn1: nn.BatchNorm2d = module.bn1
         conv2: nn.Conv2d = module.conv2
 
-        # Scale conv1 output (out_channels dimension, dim 0)
+        # Scale BN1 affine parameters so the BN output is multiplied by alpha.
+        # This correctly propagates the scale through BN (which would otherwise
+        # absorb any scaling applied directly to conv1).
         with torch.no_grad():
-            conv1.weight.mul_(alpha)
-            if conv1.bias is not None:
-                conv1.bias.mul_(alpha)
+            if bn1.weight is not None:
+                bn1.weight.mul_(alpha)
+            if bn1.bias is not None:
+                bn1.bias.mul_(alpha)
 
         # Compensate conv2 input (in_channels dimension, dim 1)
         with torch.no_grad():
             conv2.weight.mul_(1.0 / alpha)
 
 
-def verify_reparam_resnet(model: nn.Module, x: torch.Tensor, alpha: float, atol: float = 1e-4) -> float:
+def verify_reparam_resnet(model: nn.Module, x: torch.Tensor, alpha: float) -> float:
     """Verify function-preservation of relu_reparam.
 
     Returns the max absolute difference between the original and reparametrized

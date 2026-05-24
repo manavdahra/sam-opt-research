@@ -13,10 +13,8 @@ def compute_sem(values: list[float] | np.ndarray) -> float:
 
 
 def divergence_rate(train_loss: float, test_loss: float) -> float:
-    """train_loss / test_loss — proxy for overfitting."""
-    if test_loss == 0.0:
-        return float("inf")
-    return train_loss / test_loss
+    """test_loss - train_loss — generalization gap (proxy for overfitting)."""
+    return test_loss - train_loss
 
 
 def aggregate_seeds(

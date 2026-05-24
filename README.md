@@ -17,12 +17,16 @@ ASAM, and M-SAM on ResNet-18 and ViT-B/16 architectures with a focus on reparame
 invariance and generalization performance.
 
 
+## SAM:
+
+
+
 ## Running the experiments
 
 Vast.ai is being used for renting GPUs to run the experiments.
 Following are the steps to run the experiments:
 1. Run `uv sync` to install the required dependencies. Make sure you have `uv` installed on your system.
-
+2. 
 2. Rent a GPU on Vast.ai with pytorch installed. Preferably, use a GPU with at least 16GB of VRAM to accommodate the models and training process.
 2. Clone the repository and navigate to the project directory.
 3. Install the required dependencies using pip:

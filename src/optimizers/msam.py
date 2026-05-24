@@ -49,9 +49,10 @@ class MSAM(Optimizer):
     def second_step(self, zero_grad: bool = False) -> None:
         for group in self.param_groups:
             for p in group["params"]:
-                if p.grad is None:
+                if "e_w" not in self.state[p]:
                     continue
                 p.sub_(self.state[p]["e_w"])
+                del self.state[p]["e_w"]
         self.base_optimizer.step()
         if zero_grad:
             self.zero_grad()

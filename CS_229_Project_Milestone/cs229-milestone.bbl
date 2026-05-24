@@ -1,0 +1,105 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{6}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{} and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showURL}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showURL #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Foret et~al\mbox{.}(2021)]%
+        {foret2021sam}
+\bibfield{author}{\bibinfo{person}{Pierre Foret}, \bibinfo{person}{Ariel Kleiner}, \bibinfo{person}{Hossein Mobahi}, {and} \bibinfo{person}{Behnam Neyshabur}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Sharpness-Aware Minimization for Efficiently Improving Generalization}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2010.01412}
+\showURL{%
+\tempurl}
+
+
+\bibitem[He et~al\mbox{.}(2016)]%
+        {he2016resnet}
+\bibfield{author}{\bibinfo{person}{Kaiming He}, \bibinfo{person}{Xiangyu Zhang}, \bibinfo{person}{Shaoqing Ren}, {and} \bibinfo{person}{Jian Sun}.} \bibinfo{year}{2016}\natexlab{}.
+\newblock \showarticletitle{Deep Residual Learning for Image Recognition}.
+\newblock \bibinfo{journal}{\emph{CVPR}} (\bibinfo{year}{2016}).
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/1512.03385}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Hutchinson(1989)]%
+        {hutchinson1989stochastic}
+\bibfield{author}{\bibinfo{person}{M.~F. Hutchinson}.} \bibinfo{year}{1989}\natexlab{}.
+\newblock \showarticletitle{A Stochastic Estimator of the Trace of the Influence Matrix for {Laplacian} Smoothing Splines}.
+\newblock \bibinfo{journal}{\emph{Communications in Statistics --- Simulation and Computation}} \bibinfo{volume}{18}, \bibinfo{number}{3} (\bibinfo{year}{1989}), \bibinfo{pages}{1059--1076}.
+\newblock
+
+
+\bibitem[Jacobsen and Arvanitidis(2025)]%
+        {jacobsen2025msam}
+\bibfield{author}{\bibinfo{person}{Albert~Kj{\o}ller Jacobsen} {and} \bibinfo{person}{Georgios Arvanitidis}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Monge {SAM}: Robust Reparameterization-Invariant Sharpness-Aware Minimization Based on Loss Geometry}.
+\newblock
+\showeprint[arxiv]{2502.08448}~[cs.LG]
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2502.08448}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Krizhevsky(2009)]%
+        {krizhevsky2009cifar}
+\bibfield{author}{\bibinfo{person}{Alex Krizhevsky}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \showarticletitle{Learning Multiple Layers of Features from Tiny Images}.
+\newblock  (\bibinfo{year}{2009}).
+\newblock
+\urldef\tempurl%
+\url{https://www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Kwon et~al\mbox{.}(2021)]%
+        {kwon2021asam}
+\bibfield{author}{\bibinfo{person}{Jungmin Kwon}, \bibinfo{person}{Jeongseop Kim}, \bibinfo{person}{Hyunseo Park}, {and} \bibinfo{person}{In~Kwon Choi}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{{ASAM}: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning (ICML)}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2102.11600}
+\showURL{%
+\tempurl}
+
+
+\end{thebibliography}

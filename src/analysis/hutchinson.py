@@ -10,7 +10,8 @@ def hutchinson_trace(
     loss_fn: nn.Module,
     loader: DataLoader,
     device: torch.device,
-    n_samples: int = 100,
+    n_samples: int = 20,
+    max_batch: int = 64,
 ) -> float:
     """Estimate tr(H) / d via the Hutchinson stochastic estimator.
 
@@ -24,14 +25,17 @@ def hutchinson_trace(
         loader: DataLoader used to compute the loss (a single batch suffices).
         device: Computation device.
         n_samples: Number of Rademacher vectors to average over.
+        max_batch: Cap on the number of images used per Hessian estimate.
+            Smaller values are faster; 64 is a good default.
 
     Returns:
         Scalar estimate of tr(H) / d  (sharpness proxy).
     """
     model.eval()
-    # Use a single batch for speed
+    # Use a single batch for speed, capped to max_batch images
     inputs, targets = next(iter(loader))
-    inputs, targets = inputs.to(device), targets.to(device)
+    inputs = inputs[:max_batch].to(device)
+    targets = targets[:max_batch].to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
     d = sum(p.numel() for p in params)

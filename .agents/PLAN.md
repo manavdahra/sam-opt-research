@@ -83,3 +83,91 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 ## Further Considerations
 1. **Approximate reparam on ViT**: The GELU deviation grows with |α-1|. For extreme values (α=0.1, α=10) the network function will change significantly, which may confound the invariance experiment. Report the output deviation alongside reparam variance results to contextualize findings.
 
+---
+
+## Final Report: Next Steps (Post-Milestone)
+
+### Current State (as of 2026-05-24)
+- ✅ Experiment 1 (Baseline): 12 checkpoints on ResNet-18/CIFAR-10, seed 42 only
+- ✅ Experiment 3 (Flatness): Hutchinson tr(H)/d and 3D loss landscapes for all 12 checkpoints
+- ✅ Experiment 2 (Reparam): 20 runs (4 optimizers × 5 alpha values), ResNet-18, seed 42 only
+- ⚠️  ViT-B/32 experiments paused (GELU approximation deviation ~0.06 per unit at α=2)
+- ❌  Multi-seed evaluation not yet done (SEM = 0 throughout; single seed 42 only)
+- ❌  Pearson/Spearman sharpness–generalization correlation not computed
+
+### Surprising Observation: Reparam Variance Results
+Single-seed variance of test accuracy across α ∈ {0.1, 0.5, 1.0, 2.0, 10.0}:
+- SGD:  0.000010
+- SAM:  0.000005  ← **lowest** (counterintuitive — expected most sensitive)
+- ASAM: 0.000009
+- MSAM: 0.000009
+SAM appears more invariant than ASAM/MSAM to initialization scaling in these single-seed runs.
+This likely reflects noise from single-seed evaluation and must be revisited with multi-seed data.
+
+---
+
+### Action Plan
+
+#### Priority 1 — Multi-seed evaluation (unblocks all statistical claims)
+- Re-run Experiment 1 (baseline) for best-ρ configs: SAM ρ=0.02, ASAM ρ=0.5, M-SAM ρ=0.05, SGD
+  with seeds {0, 1, 2} in addition to seed 42 → 4 seeds total
+- Re-run Experiment 2 (reparam) for all 4 optimizers × 5 alpha values × seeds {0, 1, 2}
+- Compute SEM and 95% CIs across seeds; update `baseline_results.json` and `reparam_results.json`
+- **File to update**: `experiments/run_baseline.py`, `experiments/run_reparam.py` (add `--seeds` multi-arg)
+
+#### Priority 2 — Sharpness–generalization correlation
+- Using multi-seed flatness data: compute Pearson (and Spearman) correlation between
+  tr(H)/d and divergence_rate Δ = L_test − L_train across all optimizer–ρ pairs
+- Add `compute_correlation(sharpness_vals, gap_vals)` in `src/analysis/metrics.py`
+- Report r and p-value in the final paper; scatter plot in the notebook
+- **New file**: `experiments/run_correlation.py` or extend `experiments/plot_baseline.py`
+
+#### Priority 3 — Reparam invariance analysis
+- With multi-seed data: compute per-optimizer variance (and SEM) of test accuracy across α values
+- Test hypothesis: SAM most sensitive, ASAM partially invariant, M-SAM most invariant
+- If single-seed trend (SAM appears most invariant) holds across seeds, this is a noteworthy
+  negative result that challenges the hypothesis — explain via the SAM α=0.1 case being
+  an outlier or the Monge correction not dominating at this scale
+
+#### Priority 4 — ViT-B/32 (stretch goal)
+- Option A: Use approximate reparam and report output deviation alongside results; acknowledge limitation
+- Option B: Replace GELU with ReLU in ViT MLP blocks (fine-tune only) to make reparam exact
+- Option C: Drop ViT from reparam experiment; keep ViT only for baseline accuracy comparison
+- Recommended: Option A for reparam, Option C if compute is tight
+
+#### Priority 5 — Final report writing
+- Tables: update Tables 1 & 2 with multi-seed means ± SEM
+- Add Table 3: reparam variance (σ²) per optimizer across α values, with SEM
+- Add Table 4 / Figure: Pearson correlation matrix (sharpness vs. divergence rate)
+- Narrative: address the counterintuitive reparam variance finding
+
+---
+
+### Questions for TA/Mentor
+
+1. **Reparam variance result interpretation**: Our single-seed results show SAM has the *lowest*
+   variance across α values (0.000005 vs 0.000009–0.000010 for ASAM/M-SAM). This contradicts
+   the hypothesis. Is this likely a single-seed artifact, or could there be a theoretical
+   reason SAM is more robust to initialization scaling on ResNet-18 with BN?
+
+2. **Correlation metric choice**: For sharpness–generalization analysis, should we use Pearson
+   correlation (assumes linearity) or Spearman rank correlation? The relationship is expected
+   to be monotone but possibly non-linear given the ρ sweep.
+
+3. **Number of seeds**: Is 4 seeds (0, 1, 2, 42) sufficient for significance claims (t-test /
+   95% CI) given our ~0.5% accuracy differences, or do we need more runs?
+
+4. **ViT reparametrization**: Given GELU is not 1-homogeneous, is there an accepted formulation
+   in the literature for approximate invariance experiments on transformers? Alternatively,
+   is comparing ViT baseline performance (without reparam) still valuable for the paper?
+
+5. **Scope of final report**: Should we aim for a theoretical framing (e.g., sketch a PAC-Bayes
+   bound connecting Hutchinson trace to generalization) or stay purely empirical?
+
+6. **Loss landscape normalization**: We use filter normalization (Li et al., 2018) for the 3D
+   plots. For the 1D sharpness plots used in the correlation analysis, should we use the same
+   normalization or raw ℓ₂ directions? Does the choice affect the tr(H)/d estimates?
+
+7. **ASAM η parameter**: We use the ASAM default η=0.01. Should we sweep η or is the result
+   robust to this choice? The original paper's ablation is on ImageNet; CIFAR-10 may differ.
+

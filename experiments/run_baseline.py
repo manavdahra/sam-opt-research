@@ -15,6 +15,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+import torch
 import torch.nn as nn
 
 from src.data.cifar10 import get_cifar10_loaders
@@ -51,11 +52,18 @@ def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
         verbose=True,
     )
 
+    ckpt_dir = os.path.join(cfg["results_dir"], cfg["model"], "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    ckpt_path = os.path.join(ckpt_dir, f"{opt_type}_rho{rho}_seed{seed}.pt")
+    torch.save(model.state_dict(), ckpt_path)
+    print(f"Checkpoint saved → {ckpt_path}")
+
     final = history[-1]
     final["divergence_rate"] = divergence_rate(final["train_loss"], final["test_loss"])
     final["seed"] = seed
     final["optimizer"] = opt_type
     final["rho"] = rho
+    final["checkpoint"] = ckpt_path
     final["history"] = history
     return final
 
@@ -70,6 +78,7 @@ def main(config_path: str) -> None:
     opt_cfgs = cfg["optimizers"]
 
     all_results = []
+    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
@@ -82,16 +91,16 @@ def main(config_path: str) -> None:
                 result = run_single(cfg, opt_type, rho, seed)
                 per_seed.append(result)
 
+            _non_numeric = {"history", "seed", "optimizer", "checkpoint"}
             agg = aggregate_seeds(
-                [{k: v for k, v in r.items() if k not in ("history", "seed")} for r in per_seed]
+                [{k: v for k, v in r.items() if k not in _non_numeric} for r in per_seed]
             )
             agg["optimizer"] = opt_name
             agg["rho"] = rho
             agg["model"] = model_name
             all_results.append({"summary": agg, "per_seed": per_seed})
-
-    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
-    save_results(out_path, all_results)
+            # Write after every (opt, rho) group so results survive preemption.
+            save_results(out_path, all_results)
 
 
 if __name__ == "__main__":
