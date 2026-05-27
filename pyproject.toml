@@ -16,6 +16,7 @@ dependencies = [
     "vastai>=1.0.12",
     "plotly>=5.0.0",
     "kaleido>=0.2.1",
+    "fvcore>=0.1.5.post20221221",
 ]
 
 [tool.uv.sources]

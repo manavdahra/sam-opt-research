@@ -1,6 +1,7 @@
 """Shared utilities for experiment runner scripts."""
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 import json
@@ -94,3 +95,63 @@ def save_results(path: str, data: dict | list) -> None:
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
     print(f"Saved → {path}")
+
+
+# ── Run-directory helpers ────────────────────────────────────────────────────
+
+def make_run_id(model: str, opt_type: str, rho: float, seed: int) -> str:
+    """Return a unique, descriptive run identifier.
+
+    Format: YYYYMMDD-HHMMSS-<model>-<opt>-rho<rho>-seed<seed>
+    Example: 20260527-143012-resnet18-sam-rho0.05-seed42
+    """
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    return f"{ts}-{model}-{opt_type}-rho{rho}-seed{seed}"
+
+
+def write_run_dir(
+    runs_dir: str,
+    run_id: str,
+    config: dict,
+    history: list[dict],
+    model_state: dict,
+) -> str:
+    """Write per-run artefacts into runs/<run-id>/.
+
+    Creates:
+      - config.yaml   — exact config used for this run
+      - metrics.json  — per-epoch train/val metrics + elapsed_sec
+      - checkpoint.pt — final model weights
+
+    Returns the absolute path of the run directory.
+    """
+    import yaml as _yaml
+
+    run_dir = os.path.join(runs_dir, run_id)
+    os.makedirs(run_dir, exist_ok=True)
+
+    with open(os.path.join(run_dir, "config.yaml"), "w") as f:
+        _yaml.dump(dict(config), f)
+    with open(os.path.join(run_dir, "metrics.json"), "w") as f:
+        json.dump(history, f, indent=2)
+    torch.save(model_state, os.path.join(run_dir, "checkpoint.pt"))
+
+    return run_dir
+
+
+def update_index(results_root: str, run_id: str, meta: dict) -> None:
+    """Append a run entry to results/index.json (atomic read-modify-write).
+
+    The index is the single source of truth for querying runs, e.g.:
+        "all SAM runs on resnet18 with rho=0.05"
+    """
+    index_path = os.path.join(results_root, "index.json")
+    index: dict = {"runs": {}}
+    if os.path.exists(index_path):
+        with open(index_path) as f:
+            index = json.load(f)
+    index["runs"][run_id] = meta
+    tmp = index_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(index, f, indent=2)
+    os.replace(tmp, index_path)

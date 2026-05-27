@@ -1,0 +1,136 @@
+{
+  "runs": {
+    "migrated-resnet18-asam-rho0.5-seed42": {
+      "model": "resnet18",
+      "optimizer": "asam",
+      "rho": 0.5,
+      "seed": 42,
+      "test_acc": 0.9579,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-asam-rho0.5-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/asam_rho0.5_seed42.pt"
+    },
+    "migrated-resnet18-msam-rho0.005-seed42": {
+      "model": "resnet18",
+      "optimizer": "msam",
+      "rho": 0.005,
+      "seed": 42,
+      "test_acc": 0.9547,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-msam-rho0.005-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/msam_rho0.005_seed42.pt"
+    },
+    "migrated-resnet18-msam-rho0.01-seed42": {
+      "model": "resnet18",
+      "optimizer": "msam",
+      "rho": 0.01,
+      "seed": 42,
+      "test_acc": 0.955,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-msam-rho0.01-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/msam_rho0.01_seed42.pt"
+    },
+    "migrated-resnet18-msam-rho0.02-seed42": {
+      "model": "resnet18",
+      "optimizer": "msam",
+      "rho": 0.02,
+      "seed": 42,
+      "test_acc": 0.9564,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-msam-rho0.02-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/msam_rho0.02_seed42.pt"
+    },
+    "migrated-resnet18-msam-rho0.03-seed42": {
+      "model": "resnet18",
+      "optimizer": "msam",
+      "rho": 0.03,
+      "seed": 42,
+      "test_acc": 0.9576,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-msam-rho0.03-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/msam_rho0.03_seed42.pt"
+    },
+    "migrated-resnet18-msam-rho0.05-seed42": {
+      "model": "resnet18",
+      "optimizer": "msam",
+      "rho": 0.05,
+      "seed": 42,
+      "test_acc": 0.9575,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-msam-rho0.05-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/msam_rho0.05_seed42.pt"
+    },
+    "migrated-resnet18-sam-rho0.005-seed42": {
+      "model": "resnet18",
+      "optimizer": "sam",
+      "rho": 0.005,
+      "seed": 42,
+      "test_acc": 0.9523,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sam-rho0.005-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sam_rho0.005_seed42.pt"
+    },
+    "migrated-resnet18-sam-rho0.01-seed42": {
+      "model": "resnet18",
+      "optimizer": "sam",
+      "rho": 0.01,
+      "seed": 42,
+      "test_acc": 0.9531,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sam-rho0.01-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sam_rho0.01_seed42.pt"
+    },
+    "migrated-resnet18-sam-rho0.02-seed42": {
+      "model": "resnet18",
+      "optimizer": "sam",
+      "rho": 0.02,
+      "seed": 42,
+      "test_acc": 0.9575,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sam-rho0.02-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sam_rho0.02_seed42.pt"
+    },
+    "migrated-resnet18-sam-rho0.03-seed42": {
+      "model": "resnet18",
+      "optimizer": "sam",
+      "rho": 0.03,
+      "seed": 42,
+      "test_acc": 0.957,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sam-rho0.03-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sam_rho0.03_seed42.pt"
+    },
+    "migrated-resnet18-sam-rho0.05-seed42": {
+      "model": "resnet18",
+      "optimizer": "sam",
+      "rho": 0.05,
+      "seed": 42,
+      "test_acc": 0.9555,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sam-rho0.05-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sam_rho0.05_seed42.pt"
+    },
+    "migrated-resnet18-sgd-rho0.0-seed42": {
+      "model": "resnet18",
+      "optimizer": "sgd",
+      "rho": 0.0,
+      "seed": 42,
+      "test_acc": 0.9546,
+      "timestamp": "migrated",
+      "experiment": "baseline",
+      "run_dir": "results/runs/migrated-resnet18-sgd-rho0.0-seed42",
+      "checkpoint": "results/experiments/baseline/resnet18/checkpoints/sgd_rho0.0_seed42.pt"
+    }
+  }
+}

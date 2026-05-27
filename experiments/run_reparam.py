@@ -78,7 +78,7 @@ def main(config_path: str) -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
-    results_dir = cfg["results_dir"]
+    experiments_dir = cfg["experiments_dir"]
     model_name = cfg["model"]
     seeds = cfg["seeds"]
     alpha_values = cfg["alpha_values"]
@@ -118,7 +118,7 @@ def main(config_path: str) -> None:
         var_across_alpha = float(np.var(mean_accs))
         print(f"\n[{model_name}] opt={opt_name}  reparam_variance={var_across_alpha:.6f}")
 
-    out_path = os.path.join(results_dir, model_name, "reparam_results.json")
+    out_path = os.path.join(experiments_dir, "reparam", model_name, "reparam_results.json")
     save_results(out_path, all_results)
 
 

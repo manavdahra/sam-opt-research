@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 from typing import Any
 
 import torch
@@ -31,13 +32,14 @@ def train_one_epoch(
       2. forward + backward → second_step (restore + update)
 
     Returns:
-        dict with keys "train_loss" and "train_acc".
+        dict with keys "train_loss", "train_acc", and "elapsed_sec".
     """
     model.train()
     total_loss = 0.0
     total_correct = 0
     total_samples = 0
 
+    t0 = time.perf_counter()
     for inputs, targets in tqdm(loader, leave=False, desc="train"):
         inputs, targets = inputs.to(device), targets.to(device)
 
@@ -70,6 +72,7 @@ def train_one_epoch(
     return {
         "train_loss": total_loss / total_samples,
         "train_acc": total_correct / total_samples,
+        "elapsed_sec": time.perf_counter() - t0,
     }
 
 

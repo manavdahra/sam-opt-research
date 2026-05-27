@@ -30,9 +30,13 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 10. `trainer.py` — `train_one_epoch(model, optimizer, loader, loss_fn)` and `evaluate(model, loader, loss_fn)`. Returns dict: {train_acc, test_acc, train_nll, test_nll} per epoch. Handles SAM two-step pattern via duck typing.
 
 ## Phase 5: Analysis Modules (src/analysis/)
-11. `reparam.py` — two functions:
-    - `apply_relu_reparam(model, alpha)` for ResNet-18: for each consecutive Conv/Linear pair separated by ReLU, scale layer_i weights (and bias) by α, scale layer_{i+1} input weights by 1/α. Exact function-preservation; verified by `assert f(x) ≈ reparam_f(x)`.
-    - `apply_mlp_reparam(model, alpha)` for ViT-B/32: targets each Transformer MLP block's Linear→GELU→Linear pair. Scale first Linear's weight and bias by α; scale second Linear's input weight by 1/α. GELU is not scale-homogeneous so this is an *approximate* reparametrization. Log the pre-training output deviation (rather than asserting equality) to characterize the approximation quality.
+11. ✅ `reparam.py` — implemented in `src/analysis/reparam.py` as a unified facade:
+    - `apply_relu_reparam(model, alpha)` for ResNet-18 lives in `src/models/resnet18.py` (exact; ReLU homogeneity). Re-exported via the facade.
+    - `apply_mlp_reparam_taylor(model, alpha) → float` for ViT-B/32 lives in `src/models/vit.py`. Scales linear1×α and linear2×(1/α) in-place; returns analytic Taylor bound `0.4255·|α−1|` from GELU quadratic term. `_apply_mlp_reparam` is kept private.
+    - `measure_reparam_deviation(model, x, alpha)` for empirical output-diff confirmation.
+    - `apply_reparam(model, model_name, alpha)` dispatcher in `src/analysis/reparam.py`: returns `None` for ResNet-18, Taylor bound `float` for ViT-B/32.
+    - `experiments/run_reparam.py` updated to call `apply_reparam` from the facade.
+    - Tests: `tests/test_reparam.py` (ResNet-18, 5 tests) and `tests/test_reparam_vit.py` (ViT, 12 tests). Run with `uv run pytest`.
 12. `flatness.py` — `hutchinson_trace(model, loss_fn, loader, n_samples)`: stochastic trace estimation tr(H)/d via Rademacher vectors (z ~ ±1, estimate = z·Hz / d). `loss_landscape_1d(model, loss_fn, loader, direction, steps, range)`: perturb model along direction, record losses.
 13. `metrics.py` — `compute_sem(values)`: standard error of mean. Shared helpers for logging.
 
@@ -59,7 +63,7 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 - `src/optimizers/asam.py` — ASAM, adaptive T_w norm
 - `src/optimizers/msam.py` — M-SAM = SAM / (1 + ||g||²)
 - `src/models/vit.py` — ViT-B/32 (`torchvision.models.vit_b_32`), 224×224 resize in data pipeline
-- `src/analysis/reparam.py` — `apply_relu_reparam` (ResNet-18, exact) + `apply_mlp_reparam` (ViT-B/32 MLP blocks, approximate)
+- ✅ `src/analysis/reparam.py` — `apply_reparam` dispatcher + re-exports of `apply_relu_reparam`, `apply_mlp_reparam_taylor`, `measure_reparam_deviation`
 - `src/analysis/flatness.py` — Hutchinson estimator with autograd
 
 ## Verification
@@ -94,7 +98,9 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 - ✅ Experiment 1 (Baseline): 12 checkpoints on ResNet-18/CIFAR-10, seed 42 only
 - ✅ Experiment 3 (Flatness): Hutchinson tr(H)/d and 3D loss landscapes for all 12 checkpoints
 - ✅ Experiment 2 (Reparam): 20 runs (4 optimizers × 5 alpha values), ResNet-18, seed 42 only
-- ⚠️  ViT-B/32 experiments paused (GELU approximation deviation ~0.06 per unit at α=2)
+- ✅ Reparam code: `apply_mlp_reparam_taylor` + `src/analysis/reparam.py` facade + 17 passing tests
+- ✅ Convergence metrics: `elapsed_sec` in trainer, three threshold functions in metrics.py, `plot_convergence.py`
+- ⚠️  ViT-B/32 reparam experiments not yet run (Taylor bound implemented; sweep still needed)
 - ❌  Multi-seed evaluation not yet done (SEM = 0 throughout; single seed 42 only)
 - ❌  Pearson/Spearman sharpness–generalization correlation not computed
 - ❌  Convergence rate comparison (train loss / accuracy per epoch) not plotted
@@ -113,45 +119,39 @@ This likely reflects noise from single-seed evaluation and must be revisited wit
 
 ### Action Plan
 
-#### Priority 1 — ViT-B/32 GELU reparam (TA-confirmed viable)
-- **Step 1**: Implement `apply_mlp_reparam_taylor(model, alpha)` in `src/models/vit.py`
-  - GELU(x) ≈ x·Φ(x); linearize around the operating point using first-order Taylor expansion
-  - Scale linear1 by α and linear2 by 1/α as before; the residual error from GELU non-linearity
-    is now explicitly bounded and reportable
-- **Step 2**: Run reparam sweep on ViT (same 4 optimizers × 5 alpha × seeds) using Taylor approximation
-- **Files**: `src/models/vit.py` (add `apply_mlp_reparam_taylor` + deviation measurement helper)
+#### ✅ Priority 1 — ViT-B/32 GELU reparam (TA-confirmed viable)
+- ~~**Step 1**: Implement `apply_mlp_reparam_taylor(model, alpha)` in `src/models/vit.py`~~ **DONE**
+  - `apply_mlp_reparam_taylor` in `src/models/vit.py`: scales linear1×α / linear2×(1/α), returns `0.4255·|α−1|` analytic bound
+  - `_apply_mlp_reparam` kept private; `measure_reparam_deviation` for empirical confirmation
+  - `src/analysis/reparam.py` facade with `apply_reparam(model, model_name, alpha)` dispatcher
+  - `experiments/run_reparam.py` updated; 17 tests passing (`uv run pytest`)
+- **Step 2** *(pending)*: Run reparam sweep on ViT (same 4 optimizers × 5 alpha × seeds) using `apply_reparam`
+  - Log `taylor_bound` alongside test accuracy in results JSON
+  - Config: `configs/vit_reparam.yaml` (resize=224 already set)
 
-#### Priority 2 — Convergence rate comparison (TA-suggested)
+#### ✅ Priority 2 — Convergence rate comparison (TA-suggested)
 - Log train loss and train/test accuracy at *every epoch* (already in trainer, need to persist)
 - Generate per-optimizer learning curves (loss vs. epoch, accuracy vs. epoch) with SEM bands
   across seeds for the best-ρ configuration of each optimizer
 - Three-tier convergence metrics (applied at accuracy thresholds τ ∈ {90%, 94%, 95%}):
 
-  **Tier 1 — Algorithmic: Epochs to Target**
-  - First epoch where validation accuracy ≥ τ (or validation loss plateaus)
-  - Shows whether ASAM/M-SAM optimize the loss landscape more efficiently than SGD
-    in terms of learning steps, independent of compute cost
-  - Implementation: `epochs_to_threshold(acc_curve, tau)` in `src/analysis/metrics.py`
+  **Tier 1 — Algorithmic: Epochs to Target** ✅
+  - `epochs_to_threshold(acc_curve, tau)` added to `src/analysis/metrics.py`
 
-  **Tier 2 — Computational: Total FLOPs to Target**
-  - Cumulative FLOPs from step 0 up to the convergence threshold epoch
-  - SAM-family incurs 2× FLOPs per epoch (two forward-backward passes); SGD is 1×
-  - FLOPs per epoch = 2 × forward_flops for SAM/ASAM/M-SAM; 1 × for SGD
-  - Isolates hardware variance; answers "does the algorithmic benefit justify the compute cost?"
-  - Implementation: pre-compute `flops_per_epoch` per optimizer using `fvcore` or manual count;
-    `flops_to_threshold(flops_per_epoch, epochs_to_threshold)` in `src/analysis/metrics.py`
+  **Tier 2 — Computational: Total FLOPs to Target** ✅
+  - `flops_to_threshold(flops_per_epoch, epoch)` added to `src/analysis/metrics.py`
+  - `compute_flops_per_epoch(opt_name, macs, cfg)` in plot script; uses fvcore `FlopCountAnalysis` (557 M MACs measured for ResNet-18 on 32×32). SAM-family = 2× SGD.
 
-  **Tier 3 — Real-World: Wall-Clock Time to Target**
-  - Total elapsed time (`time.perf_counter()`) from epoch 0 to the threshold epoch
-  - The definitive metric: tells whether M-SAM/ASAM's algorithmic benefit outweighs the 2× time penalty
-  - Implementation: instrument `train_one_epoch` in `src/training/trainer.py` to return elapsed time;
-    accumulate per-epoch times; `wallclock_to_threshold(time_curve, epochs_to_threshold)`
+  **Tier 3 — Real-World: Wall-Clock Time to Target** ✅
+  - `train_one_epoch` in `src/training/trainer.py` now returns `elapsed_sec` via `time.perf_counter()`
+  - `wallclock_to_threshold(time_curve, epoch)` added to `src/analysis/metrics.py`
 
-- **Files to create/modify**:
-  - `experiments/run_baseline.py` — save per-epoch metrics (acc, loss, elapsed_sec) not just final epoch
-  - `src/training/trainer.py` — return `elapsed_sec` from `train_one_epoch`
-  - `src/analysis/metrics.py` — add `epochs_to_threshold`, `flops_to_threshold`, `wallclock_to_threshold`
-  - `experiments/plot_convergence.py` — new script: three-panel figure (epochs / FLOPs / wall-clock) per τ
+- **Files modified/created** ✅:
+  - `src/training/trainer.py` — `train_one_epoch` returns `elapsed_sec`; flows into history rows
+  - `src/analysis/metrics.py` — added `epochs_to_threshold`, `flops_to_threshold`, `wallclock_to_threshold`
+  - `experiments/plot_convergence.py` — **new**: three-panel grouped bar chart; gracefully warns when per-epoch history is absent (pre-existing results)
+
+- ⚠️ **Pending**: re-run `experiments/run_baseline.py` to generate results with per-epoch history + `elapsed_sec`. Existing `baseline_results.json` pre-dates per-epoch logging.
 
 #### Priority 3 — Multi-seed evaluation (unblocks all statistical claims)
 - Re-run Experiment 1 (baseline) for best-ρ configs: SAM ρ=0.02, ASAM ρ=0.5, M-SAM ρ=0.05, SGD

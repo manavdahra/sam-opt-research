@@ -7,7 +7,7 @@ Produces three interactive HTML figures saved alongside the JSON:
 
 Usage:
     uv run python experiments/plot_baseline.py \
-        --results results/results/baseline/resnet18/baseline_results.json
+        --results results/experiments/baseline/resnet18/baseline_results.json
 """
 from __future__ import annotations
 
@@ -218,7 +218,7 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
 
 def main(results_path: str) -> None:
     data = load_results(results_path)
-    out_dir = os.path.dirname(os.path.abspath(results_path))
+    out_dir = os.path.dirname(results_path) or "."
 
     print(f"\nLoaded {len(data)} entries from {results_path}")
     print("\n── Accuracy table ──")
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--results",
-        default="results/results/baseline/resnet18/baseline_results.json",
+        default="results/experiments/baseline/resnet18/baseline_results.json",
         help="Path to baseline_results.json",
     )
     args = parser.parse_args()

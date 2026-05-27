@@ -21,10 +21,21 @@ import torch.nn as nn
 from src.data.cifar10 import get_cifar10_loaders
 from src.training.trainer import train
 from src.analysis.metrics import aggregate_seeds, divergence_rate
-from experiments.utils import get_device, set_seed, build_model, build_optimizer, save_results
+from experiments.utils import (
+    get_device, set_seed, build_model, build_optimizer, save_results,
+    make_run_id, write_run_dir, update_index,
+)
 
 
-def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
+def run_single(
+    cfg: dict,
+    opt_type: str,
+    rho: float,
+    seed: int,
+    runs_dir: str,
+    experiments_dir: str,
+    results_root: str,
+) -> dict:
     device = get_device()
     set_seed(seed)
 
@@ -52,17 +63,37 @@ def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
         verbose=True,
     )
 
-    ckpt_dir = os.path.join(cfg["results_dir"], cfg["model"], "checkpoints")
+    # ── Write canonical per-run directory ────────────────────────────────────
+    run_id = make_run_id(cfg["model"], opt_type, rho, seed)
+    run_dir = write_run_dir(runs_dir, run_id, cfg, history, model.state_dict())
+    print(f"Run artefacts saved → {run_dir}")
+
+    # ── Convenience copy for run_flatness.py batch mode ──────────────────────
+    ckpt_dir = os.path.join(experiments_dir, "baseline", cfg["model"], "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
     ckpt_path = os.path.join(ckpt_dir, f"{opt_type}_rho{rho}_seed{seed}.pt")
     torch.save(model.state_dict(), ckpt_path)
-    print(f"Checkpoint saved → {ckpt_path}")
 
-    final = history[-1]
+    # ── Update index.json ────────────────────────────────────────────────────
+    import datetime
+    update_index(results_root, run_id, {
+        "model": cfg["model"],
+        "optimizer": opt_type,
+        "rho": rho,
+        "seed": seed,
+        "test_acc": history[-1]["test_acc"],
+        "timestamp": datetime.datetime.now().isoformat(),
+        "experiment": "baseline",
+        "run_dir": run_dir,
+        "checkpoint": ckpt_path,
+    })
+
+    final = history[-1].copy()
     final["divergence_rate"] = divergence_rate(final["train_loss"], final["test_loss"])
     final["seed"] = seed
     final["optimizer"] = opt_type
     final["rho"] = rho
+    final["run_id"] = run_id
     final["checkpoint"] = ckpt_path
     final["history"] = history
     return final
@@ -72,13 +103,15 @@ def main(config_path: str) -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
-    results_dir = cfg["results_dir"]
+    runs_dir = cfg["runs_dir"]
+    experiments_dir = cfg["experiments_dir"]
+    results_root = os.path.dirname(runs_dir.rstrip("/\\"))
     model_name = cfg["model"]
     seeds = cfg["seeds"]
     opt_cfgs = cfg["optimizers"]
 
     all_results = []
-    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
+    out_path = os.path.join(experiments_dir, "baseline", model_name, "baseline_results.json")
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
@@ -88,7 +121,7 @@ def main(config_path: str) -> None:
             per_seed = []
             for seed in seeds:
                 print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed}")
-                result = run_single(cfg, opt_type, rho, seed)
+                result = run_single(cfg, opt_type, rho, seed, runs_dir, experiments_dir, results_root)
                 per_seed.append(result)
 
             _non_numeric = {"history", "seed", "optimizer", "checkpoint"}

@@ -7,12 +7,12 @@ provided) and computes:
 
 Single-checkpoint mode:
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --checkpoint results/results/baseline/resnet18/checkpoints/sam_rho0.05_seed42.pt
+        --checkpoint results/runs/<run-id>/checkpoint.pt
 
 Batch mode (all checkpoints in a directory):
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --ckpt-dir results/results/baseline/resnet18/checkpoints \
-        --out-dir  results/results/flatness/resnet18
+        --ckpt-dir results/experiments/baseline/resnet18/checkpoints \
+        --out-dir  results/experiments/flatness/resnet18
 """
 from __future__ import annotations
 
@@ -361,17 +361,23 @@ if __name__ == "__main__":
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)
         _out = args.out_dir or os.path.join(
-            _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
+            _cfg.get("experiments_dir",
+                     _cfg.get("flatness_results_dir",
+                              _cfg.get("results_dir", "./results/experiments").replace("baseline", "flatness"))),
+            "flatness" if "experiments_dir" in _cfg else "",
             _cfg["model"],
-        )
+        ).replace("//", "/")
         main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch)
     elif args.checkpoint:
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)
         _out = args.out_dir or os.path.join(
-            _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
+            _cfg.get("experiments_dir",
+                     _cfg.get("flatness_results_dir",
+                              _cfg.get("results_dir", "./results/experiments").replace("baseline", "flatness"))),
+            "flatness" if "experiments_dir" in _cfg else "",
             _cfg["model"],
-        )
+        ).replace("//", "/")
         main_single(args.config, args.checkpoint, args.seed, _out, args.n_samples, args.max_batch)
     else:
         parser.error("Provide either --checkpoint or --ckpt-dir.")
