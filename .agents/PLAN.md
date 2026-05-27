@@ -82,18 +82,23 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 
 ## Further Considerations
 1. **Approximate reparam on ViT**: The GELU deviation grows with |α-1|. For extreme values (α=0.1, α=10) the network function will change significantly, which may confound the invariance experiment. Report the output deviation alongside reparam variance results to contextualize findings.
+2. **GELU reparametrization (TA-confirmed)**: Use Taylor approximation to make ViT reparam tractable:
+   - **Taylor approximation**: GELU(x) ≈ x·σ(1.702x); near x=0 this is approximately linear, so the scale error is O((αx)² − (x)²) for the quadratic term. Implement as `apply_mlp_reparam_taylor(model, alpha)` and measure output deviation as a function of α.
+   - Piecewise linear approximation is out of scope.
 
 ---
 
 ## Final Report: Next Steps (Post-Milestone)
 
-### Current State (as of 2026-05-24)
+### Current State (as of 2026-05-27)
 - ✅ Experiment 1 (Baseline): 12 checkpoints on ResNet-18/CIFAR-10, seed 42 only
 - ✅ Experiment 3 (Flatness): Hutchinson tr(H)/d and 3D loss landscapes for all 12 checkpoints
 - ✅ Experiment 2 (Reparam): 20 runs (4 optimizers × 5 alpha values), ResNet-18, seed 42 only
 - ⚠️  ViT-B/32 experiments paused (GELU approximation deviation ~0.06 per unit at α=2)
 - ❌  Multi-seed evaluation not yet done (SEM = 0 throughout; single seed 42 only)
 - ❌  Pearson/Spearman sharpness–generalization correlation not computed
+- ❌  Convergence rate comparison (train loss / accuracy per epoch) not plotted
+- ❌  Geometry-aware generalization hypothesis test not designed
 
 ### Surprising Observation: Reparam Variance Results
 Single-seed variance of test accuracy across α ∈ {0.1, 0.5, 1.0, 2.0, 10.0}:
@@ -108,66 +113,126 @@ This likely reflects noise from single-seed evaluation and must be revisited wit
 
 ### Action Plan
 
-#### Priority 1 — Multi-seed evaluation (unblocks all statistical claims)
+#### Priority 1 — ViT-B/32 GELU reparam (TA-confirmed viable)
+- **Step 1**: Implement `apply_mlp_reparam_taylor(model, alpha)` in `src/models/vit.py`
+  - GELU(x) ≈ x·Φ(x); linearize around the operating point using first-order Taylor expansion
+  - Scale linear1 by α and linear2 by 1/α as before; the residual error from GELU non-linearity
+    is now explicitly bounded and reportable
+- **Step 2**: Run reparam sweep on ViT (same 4 optimizers × 5 alpha × seeds) using Taylor approximation
+- **Files**: `src/models/vit.py` (add `apply_mlp_reparam_taylor` + deviation measurement helper)
+
+#### Priority 2 — Convergence rate comparison (TA-suggested)
+- Log train loss and train/test accuracy at *every epoch* (already in trainer, need to persist)
+- Generate per-optimizer learning curves (loss vs. epoch, accuracy vs. epoch) with SEM bands
+  across seeds for the best-ρ configuration of each optimizer
+- Three-tier convergence metrics (applied at accuracy thresholds τ ∈ {90%, 94%, 95%}):
+
+  **Tier 1 — Algorithmic: Epochs to Target**
+  - First epoch where validation accuracy ≥ τ (or validation loss plateaus)
+  - Shows whether ASAM/M-SAM optimize the loss landscape more efficiently than SGD
+    in terms of learning steps, independent of compute cost
+  - Implementation: `epochs_to_threshold(acc_curve, tau)` in `src/analysis/metrics.py`
+
+  **Tier 2 — Computational: Total FLOPs to Target**
+  - Cumulative FLOPs from step 0 up to the convergence threshold epoch
+  - SAM-family incurs 2× FLOPs per epoch (two forward-backward passes); SGD is 1×
+  - FLOPs per epoch = 2 × forward_flops for SAM/ASAM/M-SAM; 1 × for SGD
+  - Isolates hardware variance; answers "does the algorithmic benefit justify the compute cost?"
+  - Implementation: pre-compute `flops_per_epoch` per optimizer using `fvcore` or manual count;
+    `flops_to_threshold(flops_per_epoch, epochs_to_threshold)` in `src/analysis/metrics.py`
+
+  **Tier 3 — Real-World: Wall-Clock Time to Target**
+  - Total elapsed time (`time.perf_counter()`) from epoch 0 to the threshold epoch
+  - The definitive metric: tells whether M-SAM/ASAM's algorithmic benefit outweighs the 2× time penalty
+  - Implementation: instrument `train_one_epoch` in `src/training/trainer.py` to return elapsed time;
+    accumulate per-epoch times; `wallclock_to_threshold(time_curve, epochs_to_threshold)`
+
+- **Files to create/modify**:
+  - `experiments/run_baseline.py` — save per-epoch metrics (acc, loss, elapsed_sec) not just final epoch
+  - `src/training/trainer.py` — return `elapsed_sec` from `train_one_epoch`
+  - `src/analysis/metrics.py` — add `epochs_to_threshold`, `flops_to_threshold`, `wallclock_to_threshold`
+  - `experiments/plot_convergence.py` — new script: three-panel figure (epochs / FLOPs / wall-clock) per τ
+
+#### Priority 3 — Multi-seed evaluation (unblocks all statistical claims)
 - Re-run Experiment 1 (baseline) for best-ρ configs: SAM ρ=0.02, ASAM ρ=0.5, M-SAM ρ=0.05, SGD
   with seeds {0, 1, 2} in addition to seed 42 → 4 seeds total
 - Re-run Experiment 2 (reparam) for all 4 optimizers × 5 alpha values × seeds {0, 1, 2}
 - Compute SEM and 95% CIs across seeds; update `baseline_results.json` and `reparam_results.json`
 - **File to update**: `experiments/run_baseline.py`, `experiments/run_reparam.py` (add `--seeds` multi-arg)
 
-#### Priority 2 — Sharpness–generalization correlation
+#### Priority 4 — Sharpness–generalization correlation
 - Using multi-seed flatness data: compute Pearson (and Spearman) correlation between
   tr(H)/d and divergence_rate Δ = L_test − L_train across all optimizer–ρ pairs
 - Add `compute_correlation(sharpness_vals, gap_vals)` in `src/analysis/metrics.py`
 - Report r and p-value in the final paper; scatter plot in the notebook
 - **New file**: `experiments/run_correlation.py` or extend `experiments/plot_baseline.py`
 
-#### Priority 3 — Reparam invariance analysis
+#### Priority 5 — Reparam invariance analysis
 - With multi-seed data: compute per-optimizer variance (and SEM) of test accuracy across α values
 - Test hypothesis: SAM most sensitive, ASAM partially invariant, M-SAM most invariant
 - If single-seed trend (SAM appears most invariant) holds across seeds, this is a noteworthy
   negative result that challenges the hypothesis — explain via the SAM α=0.1 case being
   an outlier or the Monge correction not dominating at this scale
 
-#### Priority 4 — ViT-B/32 (stretch goal)
-- Option A: Use approximate reparam and report output deviation alongside results; acknowledge limitation
-- Option B: Replace GELU with ReLU in ViT MLP blocks (fine-tune only) to make reparam exact
-- Option C: Drop ViT from reparam experiment; keep ViT only for baseline accuracy comparison
-- Recommended: Option A for reparam, Option C if compute is tight
+#### Priority 6 — Geometry-aware generalization hypothesis test (TA-suggested)
+- **Hypothesis**: Geometry-aware optimizers (ASAM, M-SAM) find flatter minima that generalize better
+  *specifically* under label noise — they should degrade less than SAM/SGD when trained on noisy labels.
+- **Test design — Label-noise robustness**:
+  - Re-train best-ρ configs (SAM ρ=0.02, ASAM ρ=0.5, M-SAM ρ=0.05, SGD) on CIFAR-10 with
+    symmetric label noise at levels {10%, 20%, 30%} (random flip to any of 10 classes).
+  - Evaluate all checkpoints on the *clean* test set.
+  - Primary metric: test accuracy vs. noise level; secondary: divergence rate Δ at each noise level.
+  - Prediction: ASAM and M-SAM show shallower accuracy degradation curves than SAM and SGD.
+- **Implementation**:
+  - `src/data/cifar10.py`: add `label_noise_frac: float = 0.0` param to `get_cifar10_loaders`;
+    apply symmetric noise to training labels only (test set untouched).
+  - `experiments/run_baseline.py`: add `--label-noise` CLI flag; results saved under `results/noise/`.
+  - `experiments/plot_noise.py`: new script — accuracy-vs-noise-level line chart per optimizer,
+    with SEM bands across seeds.
+- **Expected result**: If M-SAM is geometry-aware and finds flat minima, it should show the
+  smallest accuracy drop from 0% → 30% noise, relative to SAM and SGD.
 
-#### Priority 5 — Final report writing
+#### Priority 7 — Final report writing
 - Tables: update Tables 1 & 2 with multi-seed means ± SEM
 - Add Table 3: reparam variance (σ²) per optimizer across α values, with SEM
-- Add Table 4 / Figure: Pearson correlation matrix (sharpness vs. divergence rate)
-- Narrative: address the counterintuitive reparam variance finding
+- Add Table 4: sharpness–generalization regression (R², β₁, p-value)
+- Add Figure: convergence curves (loss vs. epoch) with SEM bands per optimizer
+- Add Figure: label-noise robustness line chart (accuracy vs. noise level per optimizer, with SEM bands)
+- Narrative: address counterintuitive reparam variance; discuss geometry-aware hypothesis result
+
+
 
 ---
 
 ### Questions for TA/Mentor
 
-1. **Reparam variance result interpretation**: Our single-seed results show SAM has the *lowest*
+#### Resolved (2026-05-27 TA discussion)
+- ✅ **GELU reparam**: Taylor approximation confirmed as the approach; piecewise approximation skipped.
+- ✅ **Convergence rate**: Compare convergence curves (loss/accuracy vs. epoch) across optimizers.
+- ✅ **Generalization hypothesis**: Label-noise robustness selected as the test.
+
+#### Open questions
+
+1. **Label-noise signal strength**: We plan to sweep noise levels {10%, 20%, 30%} with symmetric
+   label noise. Is 30% enough to create a detectable accuracy separation between optimizers, or
+   should we go higher (e.g., 40–50%)? Are there CIFAR-10 benchmarks we should compare against?
+
+3. **Convergence metric preference**: For comparing convergence rates, should we emphasize
+   (a) epochs-to-threshold, (b) AUC of the accuracy curve, or (c) final-epoch loss slope?
+   We plan to report all three but want to know which the report should foreground.
+
+4. **Reparam variance result interpretation**: Our single-seed results show SAM has the *lowest*
    variance across α values (0.000005 vs 0.000009–0.000010 for ASAM/M-SAM). This contradicts
    the hypothesis. Is this likely a single-seed artifact, or could there be a theoretical
    reason SAM is more robust to initialization scaling on ResNet-18 with BN?
 
-2. **Correlation metric choice**: For sharpness–generalization analysis, should we use Pearson
-   correlation (assumes linearity) or Spearman rank correlation? The relationship is expected
-   to be monotone but possibly non-linear given the ρ sweep.
-
-3. **Number of seeds**: Is 4 seeds (0, 1, 2, 42) sufficient for significance claims (t-test /
-   95% CI) given our ~0.5% accuracy differences, or do we need more runs?
-
-4. **ViT reparametrization**: Given GELU is not 1-homogeneous, is there an accepted formulation
-   in the literature for approximate invariance experiments on transformers? Alternatively,
-   is comparing ViT baseline performance (without reparam) still valuable for the paper?
-
-5. **Scope of final report**: Should we aim for a theoretical framing (e.g., sketch a PAC-Bayes
+5. **Scope of final report**: Should we include a theoretical framing (e.g., sketch a PAC-Bayes
    bound connecting Hutchinson trace to generalization) or stay purely empirical?
 
-6. **Loss landscape normalization**: We use filter normalization (Li et al., 2018) for the 3D
-   plots. For the 1D sharpness plots used in the correlation analysis, should we use the same
-   normalization or raw ℓ₂ directions? Does the choice affect the tr(H)/d estimates?
-
-7. **ASAM η parameter**: We use the ASAM default η=0.01. Should we sweep η or is the result
+6. **ASAM η parameter**: We use the ASAM default η=0.01. Should we sweep η or is the result
    robust to this choice? The original paper's ablation is on ImageNet; CIFAR-10 may differ.
+
+Discussions with the mentor:
+1. https://arxiv.org/pdf/2410.21265
+2. https://arxiv.org/pdf/2211.17192
 

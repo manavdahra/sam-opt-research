@@ -175,7 +175,7 @@ ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so
 \section{Supplementary Figures}
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.9\textwidth]{../results/results/baseline/loss_landscape_all_ckpts.png}
+\includegraphics[width=0.9\textwidth]{../../results/results/baseline/loss_landscape_all_ckpts.png}
 \caption{3D filter-normalized loss landscapes for all 12 checkpoints (SGD, SAM $\times$5, ASAM, M-SAM $\times$5) on ResNet-18/CIFAR-10. Grid is $31{\times}31$ over $\alpha,\beta \in [-1,1]$, clipped at loss $= 5.0$. Color encodes loss (blue = low, red = high).}
 \label{fig:landscape_all}
 \end{figure}
@@ -185,11 +185,11 @@ ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so
 \begin{minipage}[t]{0.54\textwidth}
 \vspace{0pt}\centering
 \begin{tabular}{cc}
-  \includegraphics[width=0.49\linewidth]{../results/results/sgd_landscape.png} &
-  \includegraphics[width=0.49\linewidth]{../results/results/asam_landscape.png} \\
+  \includegraphics[width=0.49\linewidth]{../../results/results/sgd_landscape.png} &
+  \includegraphics[width=0.49\linewidth]{../../results/results/asam_landscape.png} \\
   \small SGD & \small ASAM \\[2pt]
-  \includegraphics[width=0.49\linewidth]{../results/results/sam_landscape.png} &
-  \includegraphics[width=0.49\linewidth]{../results/results/msam_landscape.png} \\
+  \includegraphics[width=0.49\linewidth]{../../results/results/sam_landscape.png} &
+  \includegraphics[width=0.49\linewidth]{../../results/results/msam_landscape.png} \\
   \small SAM ($\rho{=}0.05$) & \small M-SAM ($\rho{=}0.05$) \\
 \end{tabular}
 \captionof{figure}{3D filter-normalized loss landscapes for the best checkpoint per optimizer (ResNet-18/CIFAR-10). ASAM and M-SAM show broader, flatter basins than SGD and SAM.}
@@ -197,7 +197,7 @@ ViT-B/32 experiments are currently paused: GELU is not exactly 1-homogeneous, so
 \end{minipage}\hfill
 \begin{minipage}[t]{0.43\textwidth}
 \vspace{0pt}\centering
-\includegraphics[width=\linewidth]{../results/results/baseline/resnet18/baseline_gen_gap.png}
+\includegraphics[width=\linewidth]{../../results/results/baseline/resnet18/baseline_gen_gap.png}
 \captionof{figure}{Generalization gap analysis (ResNet-18/CIFAR-10, seed 42). \emph{Top}: divergence rate vs.\ $\rho$; M-SAM consistently lower. \emph{Bottom}: best-$\rho$ per optimizer vs.\ SGD. M-SAM at $\rho{=}0.05$ achieves the largest reduction ($-$22\%).}
 \label{fig:baseline_gen_gap}
 \end{minipage}

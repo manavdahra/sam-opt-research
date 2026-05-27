@@ -1,0 +1,9 @@
+\begin{thebibliography}{1}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Rajpurkar et~al.(2018)Rajpurkar, Jia, and Liang}]{rajpurkar2018know}
+Pranav Rajpurkar, Robin Jia, and Percy Liang. 2018.
+\newblock Know what you don{'}t know: Unanswerable questions for {SQ}u{AD}.
+\newblock In \emph{Association for Computational Linguistics (ACL)}.
+
+\end{thebibliography}
