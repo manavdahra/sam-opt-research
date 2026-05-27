@@ -1,10 +1,11 @@
 model: vit_b_32
 epochs: 50
-batch_size: 256
+batch_size: 64
 lr: 0.01
 momentum: 0.9
 weight_decay: 5.0e-4
-seeds: [0, 1, 2]
+# seeds: [0, 1, 2]
+seeds: [42]
 data_dir: ./data
 runs_dir: ./results/runs
 experiments_dir: ./results/experiments

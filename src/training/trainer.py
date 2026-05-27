@@ -11,6 +11,15 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+_BN_TYPES = (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)
+
+
+def _bn_set_mode(model: nn.Module, training: bool) -> None:
+    """Set all BatchNorm layers to train/eval without touching other layers."""
+    for m in model.modules():
+        if isinstance(m, _BN_TYPES):
+            m.train(training)
+
 
 def _is_sam_family(optimizer: Optimizer) -> bool:
     """Duck-type check: optimizer exposes first_step / second_step."""
@@ -51,10 +60,19 @@ def train_one_epoch(
             optimizer.first_step(zero_grad=True)
 
             # --- Second forward/backward: update at perturbed point ---
-            outputs = model(inputs)
-            loss = loss_fn(outputs, targets)
-            loss.backward()
+            # Freeze BN running stats so the perturbed activations (at θ+ε)
+            # don't corrupt the running mean/variance used at inference time.
+            # BN still normalises using the current batch statistics — only
+            # the EMA update of running_mean/running_var is suppressed.
+            _bn_set_mode(model, training=False)
+            
+            # Use separate variables so 'outputs' and 'loss' below
+            # reflect the original-weights values (for accurate metrics).
+            outputs_perturbed = model(inputs)
+            loss_perturbed = loss_fn(outputs_perturbed, targets)
+            loss_perturbed.backward()
             optimizer.second_step(zero_grad=True)
+            _bn_set_mode(model, training=True)
         else:
             optimizer.zero_grad()
             outputs = model(inputs)

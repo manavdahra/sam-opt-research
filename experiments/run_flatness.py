@@ -50,7 +50,7 @@ OPT_STYLE: dict[str, dict] = {
 
 def _load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
     model = build_model(cfg, device)
-    state = torch.load(path, map_location=device)
+    state = torch.load(path, map_location=device, weights_only=True)
     model.load_state_dict(state)
     model.eval()
     return model
@@ -73,6 +73,29 @@ def _analyse_one(
 
 
 # ── single-checkpoint mode ───────────────────────────────────────────────────
+
+def main(config_path: str, checkpoint: str | None, seed: int) -> None:
+    """Entry point for main.py CLI dispatch.
+
+    If *checkpoint* is provided, runs single-checkpoint mode.
+    Otherwise runs batch mode over the checkpoints saved by run_baseline.py.
+    """
+    with open(config_path) as _f:
+        _cfg = yaml.safe_load(_f)
+    out_dir = os.path.join(
+        _cfg.get("experiments_dir", "./results/experiments"),
+        "flatness",
+        _cfg["model"],
+    )
+    if checkpoint is not None:
+        main_single(config_path, checkpoint, seed, out_dir)
+    else:
+        ckpt_dir = os.path.join(
+            _cfg.get("experiments_dir", "./results/experiments"),
+            "baseline", _cfg["model"], "checkpoints",
+        )
+        main_batch(config_path, ckpt_dir, out_dir, seed)
+
 
 def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_samples: int = 20, max_batch: int = 64) -> None:
     with open(config_path) as f:
@@ -249,7 +272,7 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
     scene_updates = {}
     for idx, key in enumerate(keys):
         alphas, betas, losses = landscape[key]
-        Z = np.clip(np.array(losses), 0, Z_CLIP)
+        Z = np.clip(np.array(losses), 0, Z_CLIP).T
         row, col = idx // ncols + 1, idx % ncols + 1
         fig.add_trace(go.Surface(
             z=Z.tolist(),

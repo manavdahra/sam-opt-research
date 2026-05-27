@@ -72,16 +72,19 @@ def loss_landscape_1d(
     model_copy = copy.deepcopy(model).to(device)
     model_copy.eval()
     dir_device = [d.to(device) for d in direction]
+    # Save original parameters — restore cleanly at every grid point to
+    # avoid floating-point drift from incremental +alpha / -alpha adds.
+    originals = [p.data.clone() for p in model_copy.parameters()]
 
     alphas = np.linspace(-range_, range_, steps)
     losses = []
     for alpha in alphas:
-        _perturb_model(model_copy, dir_device, float(alpha))
+        for p, orig, d in zip(model_copy.parameters(), originals, dir_device):
+            p.data.copy_(orig + d * float(alpha))
         with torch.no_grad():
             outputs = model_copy(inputs)
             loss = loss_fn(outputs, targets)
         losses.append(loss.item())
-        _perturb_model(model_copy, dir_device, -float(alpha))  # restore
 
     return alphas, np.array(losses)
 
@@ -155,6 +158,22 @@ def loss_landscape_2d(
     norm1_sq = sum((d1 ** 2).sum().item() for d1 in dir1)
     coeff = dot / (norm1_sq + 1e-12)
     dir2 = [d2 - coeff * d1 for d2, d1 in zip(dir2, dir1)]
+
+    # Re-apply filter normalization to dir2 after orthogonalization so that
+    # both directions have comparable per-filter scales (matching model weights).
+    dir2_renorm = []
+    for d2, p in zip(dir2, model.parameters()):
+        if p.dim() >= 2:
+            d = d2.clone()
+            for i in range(p.size(0)):
+                norm_d = d[i].norm()
+                norm_p = p[i].norm()
+                if norm_d > 1e-10:
+                    d[i] = d[i] / norm_d * norm_p
+            dir2_renorm.append(d)
+        else:
+            dir2_renorm.append(d2)
+    dir2 = dir2_renorm
 
     model_copy = copy.deepcopy(model).to(device)
     model_copy.eval()

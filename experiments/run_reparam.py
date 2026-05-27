@@ -66,7 +66,7 @@ def run_single(cfg: dict, opt_type: str, rho: float, alpha: float, seed: int) ->
         verbose=False,
     )
 
-    final = history[-1]
+    final = history[-1].copy()
     final["seed"] = seed
     final["optimizer"] = opt_type
     final["alpha"] = alpha

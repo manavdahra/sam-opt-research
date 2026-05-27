@@ -44,9 +44,9 @@ def build_model(cfg: dict, device: torch.device) -> nn.Module:
         from src.models.resnet18 import get_resnet18
         model = get_resnet18(num_classes=10)
     # ViT experiments are disabled pending resolution of GELU reparam approximation issues.
-    # elif model_name == "vit_b_32":
-    #     from src.models.vit import get_vit_b_32
-    #     model = get_vit_b_32(num_classes=10, pretrained=cfg.get("pretrained", True))
+    elif model_name == "vit_b_32":
+        from src.models.vit import get_vit_b_32
+        model = get_vit_b_32(num_classes=10, pretrained=cfg.get("pretrained", True))
     else:
         raise ValueError(f"Unknown model: {model_name}")
     return model.to(device)

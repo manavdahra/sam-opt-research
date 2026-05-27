@@ -2,8 +2,11 @@
 
 Usage:
     python main.py baseline --config configs/resnet18_baseline.yaml
+    python main.py baseline --config configs/vit_baseline.yaml
     python main.py reparam  --config configs/resnet18_reparam.yaml
+    python main.py baseline --config configs/vit_reparam.yaml
     python main.py flatness --config configs/resnet18_baseline.yaml [--checkpoint path/to/model.pt]
+    python main.py baseline --config configs/vit_baseline.yaml [--checkpoint path/to/model.pt]
 """
 import argparse
 import sys
