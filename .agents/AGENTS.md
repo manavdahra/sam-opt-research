@@ -1,7 +1,8 @@
 # High level instructions for AGENTS
 
-Based on the project proposal document [cs229-proposal.pdf](./docs/cs229-proposal.pdf) come up with an implementation plan that follows the guidelines
-1. No overengineering: We should not implement any features that are not explicitly mentioned in the project proposal document. We should focus on implementing the core features that are necessary for the project to work. We should avoid adding any unnecessary features that may complicate the implementation and make it harder to debug.
+Based on the [cs229-project-milestone](../docs/CS_229_Project_Milestone/cs229-milestone.pdf) and [PLAN](./PLAN.md) implement the project according to the guidelines.
+
+1. No overengineering: We should not implement any features that are not explicitly mentioned in the project milestone document. We should focus on implementing the core features that are necessary for the project to work. We should avoid adding any unnecessary features that may complicate the implementation and make it harder to debug.
 2. Modularity: We should design our implementation in a modular way, so that we can easily test and debug each component separately. We should also make sure that our implementation is easy to understand and maintain.
 3. Scalability: We should design our implementation in a way that it can handle large datasets and can be easily extended in the future if needed. We should also make sure that our implementation is efficient and can run in a reasonable amount of time.
 4. Reproducibility: We should make sure that our implementation is reproducible, so that other researchers can easily replicate our results. We should also make sure that our implementation is well-documented and that we provide clear instructions on how to run our code and reproduce our results.

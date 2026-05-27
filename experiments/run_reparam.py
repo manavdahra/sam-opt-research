@@ -25,21 +25,15 @@ import torch.nn as nn
 from src.data.cifar10 import get_cifar10_loaders
 from src.training.trainer import train
 from src.analysis.metrics import aggregate_seeds
+from src.analysis.reparam import apply_reparam
 from experiments.utils import get_device, set_seed, build_model, build_optimizer, save_results
 
 
 def _apply_reparam(model: nn.Module, model_name: str, alpha: float) -> None:
-    if model_name == "resnet18":
-        from src.models.resnet18 import apply_relu_reparam
-        apply_relu_reparam(model, alpha)
-    elif model_name == "vit_b_32":
-        from src.models.vit import apply_mlp_reparam, measure_reparam_deviation
-        import torch
-        # Log the pre-training deviation for ViT (GELU is approximate)
-        sample = torch.randn(2, 3, 224, 224, device=next(model.parameters()).device)
-        dev = measure_reparam_deviation(model, sample, alpha)
-        print(f"  [ViT reparam] alpha={alpha:.2f}  output_deviation={dev:.6f}")
-        apply_mlp_reparam(model, alpha)
+    bound = apply_reparam(model, model_name, alpha)
+    if bound is not None:
+        # ViT: log the analytic Taylor deviation bound alongside results
+        print(f"  [ViT reparam] alpha={alpha:.2f}  taylor_bound(x=1)={bound:.6f}")
 
 
 def run_single(cfg: dict, opt_type: str, rho: float, alpha: float, seed: int) -> dict:

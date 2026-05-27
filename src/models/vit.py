@@ -49,20 +49,8 @@ def _get_mlp_linears(encoder_block: nn.Module) -> tuple[nn.Linear, nn.Linear] | 
     return linears[0], linears[1]
 
 
-def apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
-    """Apply an approximate scale reparametrization to each ViT MLP block.
-
-    Scales the first Linear layer (weight + bias) by alpha and compensates the
-    second Linear layer's input weights by 1/alpha. This is **exact** only for
-    ReLU-like activations. For GELU the transform is approximate; the deviation
-    grows with |alpha - 1|.
-
-    The transform is applied **in-place**.
-
-    Args:
-        model: A ViT-B/32 returned by get_vit_b_32().
-        alpha: Scale factor. alpha=1.0 is a no-op.
-    """
+def _apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
+    """Internal: scale linear1×α and linear2×(1/α) in every ViT MLP block."""
     if alpha == 1.0:
         return
 
@@ -80,6 +68,42 @@ def apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
             linear2.weight.mul_(1.0 / alpha)
 
 
+def apply_mlp_reparam_taylor(model: nn.Module, alpha: float) -> float:
+    """Apply approximate MLP reparametrisation with a Taylor-based error bound.
+
+    Applies the same linear1×α / linear2×(1/α) transform as apply_mlp_reparam
+    **in-place**, and returns an analytic upper bound on the per-activation
+    deviation introduced by GELU's non-linearity.
+
+    Derivation (first-order Taylor of GELU(x) ≈ x·σ(1.702x) ≈ 0.5x + 0.4255x²):
+
+        Error(x, α) = GELU(αx)/α − GELU(x)
+                    ≈ (0.5αx + 0.4255α²x²)/α − (0.5x + 0.4255x²)
+                    = 0.4255·x²·(α − 1)
+
+    Returned bound: 0.4255·|α−1| evaluated at unit activation scale (x=1).
+    For activations with RMS magnitude r, multiply by r².
+
+    This is the recommended function for ViT reparam experiments; it makes the
+    approximation error explicit rather than silently ignoring it.
+
+    Args:
+        model: A ViT-B/32 returned by get_vit_b_32().
+        alpha: Scale factor. alpha=1.0 is a no-op (returns 0.0).
+
+    Returns:
+        analytic_bound: per-unit deviation bound from GELU non-linearity.
+    """
+    if alpha == 1.0:
+        return 0.0
+
+    _apply_mlp_reparam(model, alpha)
+
+    # Coefficient of the quadratic Taylor term: 1.702 / 4 ≈ 0.4255
+    _GELU_QUADRATIC_COEFF = 1.702 / 4.0
+    return _GELU_QUADRATIC_COEFF * abs(alpha - 1.0)
+
+
 def measure_reparam_deviation(model: nn.Module, x: torch.Tensor, alpha: float) -> float:
     """Return the max absolute difference after applying mlp_reparam.
 
@@ -87,7 +111,7 @@ def measure_reparam_deviation(model: nn.Module, x: torch.Tensor, alpha: float) -
     """
     model_orig = copy.deepcopy(model)
     model_reparam = copy.deepcopy(model)
-    apply_mlp_reparam(model_reparam, alpha)
+    _apply_mlp_reparam(model_reparam, alpha)
     model_orig.eval()
     model_reparam.eval()
     with torch.no_grad():
