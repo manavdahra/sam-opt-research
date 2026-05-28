@@ -60,15 +60,19 @@ def _analyse_one(
     name: str,
     model: nn.Module,
     loss_fn: nn.Module,
-    test_loader,
+    train_loader,
     device: torch.device,
     n_samples: int = 20,
     max_batch: int = 64,
 ) -> tuple[float, list, list, list]:
-    """Returns (trace, alphas_list, betas_list, losses_2d_list)."""
-    trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+    """Returns (trace, alphas_list, betas_list, losses_2d_list).
+
+    Sharpness and landscape are measured on the training loss — the quantity
+    SAM optimises and the one referenced in PAC-Bayes flatness bounds.
+    """
+    trace = hutchinson_trace(model, loss_fn, train_loader, device, n_samples=n_samples, max_batch=max_batch)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=1.0)
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, train_loader, device, steps=31, range_=1.0)
     return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
@@ -103,7 +107,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
 
     device = get_device()
     set_seed(seed)
-    _, test_loader = get_cifar10_loaders(
+    train_loader, _ = get_cifar10_loaders(
         data_dir=cfg["data_dir"],
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
@@ -114,7 +118,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
     model = _load_checkpoint(checkpoint, cfg, device)
-    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, train_loader, device, n_samples=n_samples, max_batch=max_batch)
 
     os.makedirs(out_dir, exist_ok=True)
     save_results(os.path.join(out_dir, "sharpness.json"), {name: trace})
@@ -135,7 +139,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
 
     device = get_device()
     set_seed(seed)
-    _, test_loader = get_cifar10_loaders(
+    train_loader, _ = get_cifar10_loaders(
         data_dir=cfg["data_dir"],
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
@@ -167,7 +171,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         key = f"{e['opt']}_rho{e['rho']}"
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
-        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, train_loader, device, n_samples=n_samples, max_batch=max_batch)
         sharpness_all[key] = trace
         landscape_all[key] = (alphas, betas, losses)
         # Incremental save after each checkpoint

@@ -82,41 +82,41 @@ def main(config_path: str) -> None:
     model_name = cfg["model"]
     seeds = cfg["seeds"]
     alpha_values = cfg["alpha_values"]
-    opt_names = cfg["optimizers"]
-    rho = cfg["rho"]
-    asam_rho = cfg.get("asam_rho", 0.5)
+    opt_cfgs = cfg["optimizers"]
 
     all_results = []
 
-    for opt_name in opt_names:
-        opt_rho = asam_rho if opt_name == "asam" else rho
-        # Add asam_eta to cfg for build_optimizer
-        if opt_name == "asam":
-            cfg["asam_eta"] = cfg.get("asam_eta", 0.01)
+    for opt_name, opt_cfg in opt_cfgs.items():
+        opt_type = opt_cfg["type"]
+        rho_sweep = opt_cfg.get("rho_sweep", [0.0])
+        if opt_type == "asam":
+            cfg["asam_eta"] = opt_cfg.get("eta", 0.01)
 
-        alpha_accs: dict[float, list[float]] = {}
+        for rho in rho_sweep:
+            alpha_accs: dict[float, list[float]] = {}
 
-        for alpha in alpha_values:
-            per_seed = []
-            for seed in seeds:
-                print(f"\n[{model_name}] opt={opt_name} alpha={alpha} seed={seed}")
-                result = run_single(cfg, opt_name, opt_rho, alpha, seed)
-                per_seed.append(result)
-            accs = [r["test_acc"] for r in per_seed]
-            alpha_accs[alpha] = accs
-            all_results.append({
-                "model": model_name,
-                "optimizer": opt_name,
-                "alpha": alpha,
-                "test_acc_mean": float(np.mean(accs)),
-                "test_acc_sem": float(np.std(accs, ddof=1) / np.sqrt(len(accs))) if len(accs) > 1 else 0.0,
-                "per_seed": per_seed,
-            })
+            for alpha in alpha_values:
+                per_seed = []
+                for seed in seeds:
+                    print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} seed={seed}")
+                    result = run_single(cfg, opt_type, rho, alpha, seed)
+                    per_seed.append(result)
+                accs = [r["test_acc"] for r in per_seed]
+                alpha_accs[alpha] = accs
+                all_results.append({
+                    "model": model_name,
+                    "optimizer": opt_name,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "test_acc_mean": float(np.mean(accs)),
+                    "test_acc_sem": float(np.std(accs, ddof=1) / np.sqrt(len(accs))) if len(accs) > 1 else 0.0,
+                    "per_seed": per_seed,
+                })
 
-        # Variance of final test acc across alpha values (mean over seeds, then var over alphas)
-        mean_accs = [float(np.mean(alpha_accs[a])) for a in alpha_values]
-        var_across_alpha = float(np.var(mean_accs))
-        print(f"\n[{model_name}] opt={opt_name}  reparam_variance={var_across_alpha:.6f}")
+            # Variance of final test acc across alpha values (mean over seeds, then var over alphas)
+            mean_accs = [float(np.mean(alpha_accs[a])) for a in alpha_values]
+            var_across_alpha = float(np.var(mean_accs))
+            print(f"\n[{model_name}] opt={opt_name} rho={rho}  reparam_variance={var_across_alpha:.6f}")
 
     out_path = os.path.join(experiments_dir, "reparam", model_name, "reparam_results.json")
     save_results(out_path, all_results)

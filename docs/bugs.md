@@ -135,10 +135,10 @@ Changed to `torch.load(path, map_location=device, weights_only=True)`.
 
 **Severity:** Conceptual  
 **File:** `experiments/run_flatness.py`  
-**Status:** Open (deferred by user)
+**Status:** Fixed
 
 ### Description
 `hutchinson_trace` and `loss_landscape_*` are called with `test_loader`. SAM's theoretical motivation is to find flat minima of the **training** loss; the Hessian trace should therefore be estimated on the training distribution. Measuring it on test data conflates sharpness with generalisation.
 
-### Suggested Fix
-Pass `train_loader` (or a small held-out subset of training data) to the flatness analysis functions in `run_flatness.py`.
+### Fix
+`_analyse_one`, `main_single`, and `main_batch` now load and pass `train_loader` instead of `test_loader` to `hutchinson_trace` and `loss_landscape_2d`.

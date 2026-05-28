@@ -116,6 +116,9 @@ def main(config_path: str) -> None:
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
         rho_sweep = opt_cfg.get("rho_sweep", [0.0])
+        # Inject per-optimizer eta into cfg so build_optimizer can read it
+        if opt_type == "asam":
+            cfg["asam_eta"] = opt_cfg.get("eta", 0.01)
 
         for rho in rho_sweep:
             per_seed = []
@@ -124,7 +127,7 @@ def main(config_path: str) -> None:
                 result = run_single(cfg, opt_type, rho, seed, runs_dir, experiments_dir, results_root)
                 per_seed.append(result)
 
-            _non_numeric = {"history", "seed", "optimizer", "checkpoint"}
+            _non_numeric = {"history", "seed", "optimizer", "checkpoint", "run_id", "model"}
             agg = aggregate_seeds(
                 [{k: v for k, v in r.items() if k not in _non_numeric} for r in per_seed]
             )

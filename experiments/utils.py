@@ -86,7 +86,12 @@ def build_optimizer(
     else:
         raise ValueError(f"Unknown optimizer type: {opt_type}")
 
-    scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
+    # Attach the scheduler to the underlying SGD for SAM-family optimizers so
+    # that _step_count is incremented by base_optimizer.step() and PyTorch
+    # does not emit a spurious "scheduler called before optimizer" warning.
+    # SAM shares param_groups with base_optimizer, so LR changes are identical.
+    sched_target = getattr(optimizer, "base_optimizer", optimizer)
+    scheduler = CosineAnnealingLR(sched_target, T_max=epochs)
     return optimizer, scheduler
 
 

@@ -42,14 +42,24 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 
 ## Phase 6: Configs (configs/)
 14. YAML per experiment:
-    - `resnet18_baseline.yaml`, `vit_baseline.yaml` — seeds, epochs, lr, momentum, wd, rho_sweep
-    - `resnet18_reparam.yaml`, `vit_reparam.yaml` — alpha_values: [0.1, 0.5, 1, 2, 10]
-    - Single rho for reparam test; multiple seeds
+    - `resnet18_baseline.yaml`, `vit_baseline.yaml` — seeds, epochs, lr, momentum, wd. `rho_sweep` is
+      specified **per-optimizer** under each optimizer block. SGD has no `rho_sweep` and runs once
+      (rho=0.0). SAM, ASAM, M-SAM each have `rho_sweep: [0.005, 0.01, 0.02, 0.03, 0.05]`.
+    - `resnet18_reparam.yaml`, `vit_reparam.yaml` — same per-optimizer `rho_sweep` structure;
+      adds `alpha_values: [0.1, 0.5, 1.0, 2.0, 10.0]`. Optimizers stored as a dict (same format
+      as baseline), not a flat list.
 
 ## Phase 7: Experiment Scripts (experiments/)
-15. `run_baseline.py` — for each (model, optimizer, rho, seed): train, log metrics to results/baseline/. Saves checkpoint per run.
-16. `run_reparam.py` — for each (model, optimizer, alpha, seed): call `apply_relu_reparam` (ResNet-18) or `apply_mlp_reparam` (ViT-B/32), train from scratch, record final test acc. Saves to results/reparam/.
-17. `run_flatness.py` — loads saved checkpoints, computes Hutchinson trace and 1D landscape, saves to results/flatness/.
+15. `run_baseline.py` — for each (optimizer, rho, seed): reads `rho_sweep` from the optimizer's own
+    config block (defaults to `[0.0]` if absent). Trains, logs metrics to `results/baseline/`.
+    Saves checkpoint per run. Writes `baseline_results.json` after every (opt, rho) group.
+16. `run_reparam.py` — for each (optimizer, rho, alpha, seed): reads optimizer dict (same format as
+    baseline). SGD runs once at rho=0.0; SAM/ASAM/M-SAM sweep their own rho values. Applies
+    `apply_reparam` from the facade, trains from scratch, records final test accuracy and
+    reparam_variance (var of mean acc across alpha, per rho). Saves `reparam_results.json`.
+17. `run_flatness.py` — loads saved checkpoints, computes Hutchinson trace (n_samples=20,
+    max_batch=64) and 31×31 2D loss landscape (filter-normalised, Gram-Schmidt), saves to
+    `results/flatness/`.
 
 ## Phase 8: Notebook (notebooks/)
 18. `analysis.ipynb` — load CSVs from results/, generate all figures: (a) accuracy/NLL curves with SEM bands, (b) divergence rate vs ρ, (c) reparam variance bar chart, (d) loss landscape plots, (e) sharpness bar chart.
@@ -94,10 +104,15 @@ Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 
 ## Final Report: Next Steps (Post-Milestone)
 
-### Current State (as of 2026-05-27)
-- ✅ Experiment 1 (Baseline): 12 checkpoints on ResNet-18/CIFAR-10, seed 42 only
+### Current State (as of 2026-05-28)
+- ✅ Config structure: per-optimizer `rho_sweep` in all four configs (baseline + reparam, both models)
+- ✅ `run_baseline.py`: reads `rho_sweep` per-optimizer; injects `asam_eta` from optimizer block
+- ✅ `run_reparam.py`: iterates optimizer dict; per-optimizer rho_sweep; SGD runs once at rho=0.0
+- ✅ `run_smoke.py`: uses per-optimizer `rho_sweep`; runs baseline + flatness + reparam per model
+- ✅ Experiment 1 (Baseline): 12 checkpoints on ResNet-18/CIFAR-10, seed 42 only (pre-rho_sweep run)
 - ✅ Experiment 3 (Flatness): Hutchinson tr(H)/d and 3D loss landscapes for all 12 checkpoints
-- ✅ Experiment 2 (Reparam): 20 runs (4 optimizers × 5 alpha values), ResNet-18, seed 42 only
+- ✅ Experiment 2 (Reparam): 20 runs (4 opts × 5 alphas), ResNet-18, seed 42 only (pre-rho_sweep run)
+- ⏳ Full rho_sweep runs (16 baseline configs × seed, 80 reparam configs × seed) not yet executed
 - ✅ Reparam code: `apply_mlp_reparam_taylor` + `src/analysis/reparam.py` facade + 17 passing tests
 - ✅ Convergence metrics: `elapsed_sec` in trainer, three threshold functions in metrics.py, `plot_convergence.py`
 - ⚠️  ViT-B/32 reparam experiments not yet run (Taylor bound implemented; sweep still needed)

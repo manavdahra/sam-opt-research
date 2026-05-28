@@ -14,11 +14,25 @@ from tqdm import tqdm
 _BN_TYPES = (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)
 
 
-def _bn_set_mode(model: nn.Module, training: bool) -> None:
-    """Set all BatchNorm layers to train/eval without touching other layers."""
+def _bn_disable_running_stats(model: nn.Module) -> None:
+    """Suppress EMA updates to BN running_mean/running_var during the SAM second
+    forward pass by setting momentum=0.  The model stays in train mode so batch
+    statistics are still used for normalisation — only the running-stat write-back
+    is skipped.  Call _bn_restore_running_stats() afterwards.
+    """
     for m in model.modules():
         if isinstance(m, _BN_TYPES):
-            m.train(training)
+            m._bak_momentum = m.momentum
+            m.momentum = 0.0
+
+
+def _bn_restore_running_stats(model: nn.Module) -> None:
+    """Restore the BN momentum values saved by _bn_disable_running_stats()."""
+    for m in model.modules():
+        if isinstance(m, _BN_TYPES):
+            if hasattr(m, '_bak_momentum'):
+                m.momentum = m._bak_momentum
+                del m._bak_momentum
 
 
 def _is_sam_family(optimizer: Optimizer) -> bool:
@@ -60,19 +74,16 @@ def train_one_epoch(
             optimizer.first_step(zero_grad=True)
 
             # --- Second forward/backward: update at perturbed point ---
-            # Freeze BN running stats so the perturbed activations (at θ+ε)
-            # don't corrupt the running mean/variance used at inference time.
-            # BN still normalises using the current batch statistics — only
-            # the EMA update of running_mean/running_var is suppressed.
-            _bn_set_mode(model, training=False)
-            
-            # Use separate variables so 'outputs' and 'loss' below
-            # reflect the original-weights values (for accurate metrics).
+            # Keep model in train mode so BN normalises with batch statistics
+            # (essential for numerical stability).  Set momentum=0 so the
+            # second pass does not corrupt running_mean/running_var with
+            # activations computed at the perturbed weights (θ+ε).
+            _bn_disable_running_stats(model)
             outputs_perturbed = model(inputs)
             loss_perturbed = loss_fn(outputs_perturbed, targets)
             loss_perturbed.backward()
             optimizer.second_step(zero_grad=True)
-            _bn_set_mode(model, training=True)
+            _bn_restore_running_stats(model)
         else:
             optimizer.zero_grad()
             outputs = model(inputs)
