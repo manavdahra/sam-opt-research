@@ -26,6 +26,9 @@ torch = [
 torchvision = [
     { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
 ]
+triton = [
+    { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cu128-nightly"
