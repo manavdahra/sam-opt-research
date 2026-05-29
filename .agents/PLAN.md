@@ -1,23 +1,23 @@
 # Plan: SAM Optimization Research Implementation
 
 ## Overview
-Empirical benchmarking of SGD, SAM, ASAM, and M-SAM on ResNet-18 and ViT-B/16 with CIFAR-10.
+Empirical benchmarking of SGD, SAM, ASAM, and M-SAM on ResNet-18 and ViT-B/32 with CIFAR-10.
 Three experiments: (1) baseline comparison, (2) reparametrization invariance, (3) flatness analysis.
 Stack: Python 3.13, PyTorch, torchvision, timm, YAML configs, Jupyter for plots.
 
 ---
 
-## Phase 0: Project Setup
+## Phase 0: Project Setup ✅
 1. Update `pyproject.toml` — add torch, torchvision, timm, numpy, matplotlib, seaborn, pyyaml, tqdm
 2. Create directory tree:
    - `src/optimizers/`, `src/models/`, `src/data/`, `src/training/`, `src/analysis/`
    - `configs/`, `experiments/`, `notebooks/`, `results/` (git-ignored)
 3. Update `main.py` as CLI dispatch entry point (calls experiment scripts by name)
 
-## Phase 1: Optimizers (src/optimizers/)
+## Phase 1: Optimizers (src/optimizers/) ✅
 4. `sam.py` — SAM: two-step API (`first_step` / `second_step`). Step 1: ε = ρ·∇ℓ/‖∇ℓ‖; Step 2: apply base optimizer at θ+ε, restore θ.
-5. `asam.py` — ASAM: adaptive perturbation ε = ρ·T_w²∇ℓ/‖T_w∇ℓ‖ where T_w = diag(|w|+η). Same two-step API.
-6. `msam.py` — M-SAM: ε = δ_SAM / (1 + ‖∇ℓ‖²₂). Thin wrapper over SAM's first_step with rescaling. Same API.
+5. `asam.py` — ASAM: Adaptive perturbation. Same two-step API. See paper for exact formula (adaptive T_w norm).
+6. `msam.py` — M-SAM: Thin wrapper over SAM's first_step with rescaling. Same API. See paper for exact formula.
 
 ## Phase 2: Data (src/data/)
 7. `cifar10.py` — returns (train_loader, test_loader). Standard augmentation (RandomCrop 32 pad=4, RandomHorizontalFlip, Normalize). Seed-controlled worker init.
@@ -210,7 +210,7 @@ This likely reflects noise from single-seed evaluation and must be revisited wit
 #### Priority 7 — Final report writing
 - Tables: update Tables 1 & 2 with multi-seed means ± SEM
 - Add Table 3: reparam variance (σ²) per optimizer across α values, with SEM
-- Add Table 4: sharpness–generalization regression (R², β₁, p-value)
+- Add Table 4: Pearson r and p-value for sharpness–generalization correlation
 - Add Figure: convergence curves (loss vs. epoch) with SEM bands per optimizer
 - Add Figure: label-noise robustness line chart (accuracy vs. noise level per optimizer, with SEM bands)
 - Narrative: address counterintuitive reparam variance; discuss geometry-aware hypothesis result

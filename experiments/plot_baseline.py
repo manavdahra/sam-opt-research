@@ -25,10 +25,10 @@ from plotly.subplots import make_subplots
 
 # ── colour / symbol map ──────────────────────────────────────────────────────
 OPT_STYLE: dict[str, dict] = {
-    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
-    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
-    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
     "sgd":  {"color": "#9E9E9E", "symbol": "diamond",  "label": "SGD"},
+    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
+    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
+    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
 }
 
 
@@ -57,8 +57,8 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
         annotation_position="top right",
     )
 
-    # SAM & MSAM — line plots over ρ
-    for opt in ("sam", "msam"):
+    # SAM, ASAM & MSAM — line plots over ρ
+    for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
             key=lambda s: _summary(s)["rho"],
@@ -72,18 +72,6 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
             line=dict(color=style["color"]),
             marker=dict(color=style["color"], size=8, symbol=style["symbol"]),
         ))
-
-    # ASAM — single point
-    asam = next(s for s in data if _summary(s)["optimizer"] == "asam")
-    asam_rho = _summary(asam)["rho"]
-    asam_acc = _summary(asam)["test_acc_mean"]
-    style = OPT_STYLE["asam"]
-    fig.add_trace(go.Scatter(
-        x=[asam_rho], y=[asam_acc], mode="markers+text",
-        name=f"{style['label']} (ρ={asam_rho})",
-        marker=dict(color=style["color"], size=12, symbol=style["symbol"]),
-        text=[f"ρ={asam_rho}"], textposition="bottom center",
-    ))
 
     fig.update_layout(
         title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
@@ -112,8 +100,8 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
         subplot_titles=["Gen. Gap vs ρ", "Best ρ per Optimizer"],
     )
 
-    # Left: SAM & MSAM line plots
-    for opt in ("sam", "msam"):
+    # Left: SAM, ASAM & MSAM line plots
+    for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
             key=lambda s: _summary(s)["rho"],

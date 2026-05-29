@@ -45,10 +45,10 @@ THRESHOLDS = [0.90, 0.94, 0.95]
 THRESHOLD_LABELS = ["90%", "94%", "95%"]
 
 OPT_STYLE: dict[str, dict] = {
-    "sam":  {"color": "#2196F3", "label": "SAM"},
-    "msam": {"color": "#4CAF50", "label": "M-SAM"},
-    "asam": {"color": "#FF9800", "label": "ASAM"},
     "sgd":  {"color": "#9E9E9E", "label": "SGD"},
+    "sam":  {"color": "#2196F3", "label": "SAM"},
+    "asam": {"color": "#FF9800", "label": "ASAM"},
+    "msam": {"color": "#4CAF50", "label": "M-SAM"},
 }
 
 # SAM-family runs 2 forward+backward passes per batch; SGD runs 1.

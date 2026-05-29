@@ -58,7 +58,20 @@ PyTorch BatchNorm layers in `model.train()` mode update `running_mean` and `runn
 Note: `model.train()` **enables** running-stat updates; `model.eval()` **freezes** them.
 
 ### Fix
-Added `_bn_set_mode(model, training=False)` immediately before the second forward pass and `_bn_set_mode(model, training=True)` immediately after. BN layers still normalise using current batch statistics (so gradients are valid), but the EMA update of `running_mean`/`running_var` is suppressed.
+Momentum is set to 0 for the second forward pass, so the running stats are not updated with the perturbed activations:
+```python
+def _bn_disable_running_stats(model: nn.Module) -> None:
+    """Suppress EMA updates to BN running_mean/running_var during the SAM second
+    forward pass by setting momentum=0.  The model stays in train mode so batch
+    statistics are still used for normalisation — only the running-stat write-back
+    is skipped.  Call _bn_restore_running_stats() afterwards.
+    """
+    for m in model.modules():
+        if isinstance(m, _BN_TYPES):
+            m._bak_momentum = m.momentum
+            m.momentum = 0.0
+```
+This preserves the original running stats computed at θ, ensuring correct behaviour at inference time.
 
 ---
 
@@ -128,17 +141,3 @@ Without `weights_only=True`, PyTorch deserialises the file using `pickle`, which
 
 ### Fix
 Changed to `torch.load(path, map_location=device, weights_only=True)`.
-
----
-
-## B-08 · `run_flatness.py` — sharpness measured on test data instead of train data *(open)*
-
-**Severity:** Conceptual  
-**File:** `experiments/run_flatness.py`  
-**Status:** Fixed
-
-### Description
-`hutchinson_trace` and `loss_landscape_*` are called with `test_loader`. SAM's theoretical motivation is to find flat minima of the **training** loss; the Hessian trace should therefore be estimated on the training distribution. Measuring it on test data conflates sharpness with generalisation.
-
-### Fix
-`_analyse_one`, `main_single`, and `main_batch` now load and pass `train_loader` instead of `test_loader` to `hutchinson_trace` and `loss_landscape_2d`.

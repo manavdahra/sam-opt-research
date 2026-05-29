@@ -4,7 +4,7 @@ batch_size: 64
 lr: 0.01
 momentum: 0.9
 weight_decay: 5.0e-4
-seeds: [0, 1, 2]
+seeds: [40, 41, 42]
 data_dir: ./data
 runs_dir: ./results/runs
 experiments_dir: ./results/experiments
@@ -12,18 +12,18 @@ num_workers: 4
 resize: 224
 pretrained: true
 
-alpha_values: [0.5, 2.0, 10.0]
+alpha_values: [5.0]
 
 optimizers:
   sgd:
     type: sgd
   sam:
     type: sam
-    rho_sweep: [0.01, 0.05, 0.1, 0.5, 1.0]
+    rho_sweep: [0.05, 0.1, 0.5]
   asam:
     type: asam
     eta: 0.01
-    rho_sweep: [0.01, 0.05, 0.1, 0.5, 1.0]
+    rho_sweep: [0.05, 0.1, 0.5]
   msam:
     type: msam
-    rho_sweep: [0.01, 0.05, 0.1, 0.5, 1.0]
+    rho_sweep: [0.05, 0.1, 0.5]

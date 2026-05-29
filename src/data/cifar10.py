@@ -5,8 +5,23 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 
 
+"""The mean and std values are computed by following script:
+
+import torch
+from torchvision.datasets import CIFAR10
+import torchvision.transforms as transforms
+
+ds = CIFAR10(root="./data", train=True, download=True, transform=transforms.ToTensor())
+loader = torch.utils.data.DataLoader(ds, batch_size=5000, num_workers=2)
+
+imgs = torch.cat([x for x, _ in loader])  # shape (50000, 3, 32, 32)
+mean = imgs.mean(dim=(0, 2, 3))  # per-channel mean
+std  = imgs.std(dim=(0, 2, 3))   # per-channel std
+print(mean, std)
+
+"""
 CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
-CIFAR10_STD = (0.247, 0.243, 0.261)
+CIFAR10_STD = (0.2470, 0.2435, 0.2616)
 
 
 def _worker_init_fn(worker_id: int) -> None:
