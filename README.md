@@ -33,8 +33,10 @@ git clone <repo-url> && cd sam-opt-research
 uv sync
 
 # 3. Start a tmux session so training survives SSH disconnects
-touch ~/.no_auto_tmux   # required on some Vast.ai templates
-tmux new-session -A -s monitor_gpu # create a new session named 'monitor_gpu' or attach if it already exists
+      # required on some Vast.ai templates
+# If you get "sessions should be nested with care", you're already inside tmux.
+# Use TMUX= prefix to create a new top-level session:
+TMUX= tmux new-session -A -s monitor_gpu  # create or attach to 'monitor_gpu'
 watch -n 1 nvidia-smi         # monitor GPU usage every second
 
 tmux attach -t monitor_gpu    # to re-attach to the GPU monitoring session
@@ -46,7 +48,7 @@ tmux attach -t monitor_gpu    # to re-attach to the GPU monitoring session
 Run each model on a same GPU instance in parallel. The models are small enough that they can be trained simultaneously without significant slowdown, and this will speed up the overall experiment time.
 
 ```bash
-tmux new-session -A -s resnet_baseline_train  # create a new session named 'resnet_baseline_train' or attach if it already exists
+TMUX= tmux new-session -A -s resnet_baseline_train  # create or attach to 'resnet_baseline_train'
 # Ctrl+B d  to detach
 
 # Instance 1 — ResNet-18
@@ -55,7 +57,7 @@ bash experiments/run_resnet18_baseline.sh
 tmux attach -t resnet_baseline_train          # to re-attach to the training session
 # Ctrl+B d  to detach
 
-tmux new-session -A -s vit_baseline_train  # create a new session named 'vit_baseline_train' or attach if it already exists
+TMUX= tmux new-session -A -s vit_baseline_train  # create or attach to 'vit_baseline_train'
 # Ctrl+B d  to detach
 
 # Instance 2 — ViT-B/32
@@ -70,7 +72,7 @@ Results are saved to `results/resnet18/` and `results/vit_b_32/` respectively.
 ### Experiment 2 — Reparametrisation invariance
 
 ```bash
-tmux new-session -A -s resnet_reparam_train  # create a new session named 'resnet_reparam_train' or attach if it already exists
+TMUX= tmux new-session -A -s resnet_reparam_train  # create or attach to 'resnet_reparam_train'
 # Ctrl+B d  to detach
 
 # Instance 1 — ResNet-18
@@ -79,7 +81,7 @@ bash experiments/run_resnet18_reparam.sh
 tmux attach -t resnet_reparam_train          # to re-attach to the training session
 # Ctrl+B d  to detach
 
-tmux new-session -A -s vit_reparam_train  # create a new session named 'vit_reparam_train' or attach if it already exists
+TMUX= tmux new-session -A -s vit_reparam_train  # create or attach to 'vit_reparam_train'
 # Ctrl+B d  to detach
 
 # Instance 2 — ViT-B/32

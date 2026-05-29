@@ -16,3 +16,11 @@ wheels/
 
 # Results
 /results/
+
+# Coverage reports
+/htmlcov
+.coverage
+.coverage.*
+
+# Pytest cache
+.pytest_cache/

@@ -113,6 +113,22 @@ def main(config_path: str) -> None:
     all_results = []
     out_path = os.path.join(experiments_dir, "baseline", model_name, "baseline_results.json")
 
+    # Build lookup of already-completed (opt, rho) groups for resume support.
+    _done_results: dict[tuple, dict] = {}
+    _done_seeds: set[tuple] = set()
+    if os.path.exists(out_path):
+        import json
+        with open(out_path) as _f:
+            all_results = json.load(_f)
+        for _entry in all_results:
+            _agg = _entry.get("summary", {})
+            _opt = _agg.get("optimizer")
+            _rho = _agg.get("rho")
+            for _ps in _entry.get("per_seed", []):
+                _done_seeds.add((_opt, _rho, _ps["seed"]))
+            _done_results[(_opt, _rho)] = _entry
+        print(f"Resuming: {len(_done_seeds)} (opt, rho, seed) combos already done.")
+
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
         rho_sweep = opt_cfg.get("rho_sweep", [0.0])
@@ -121,10 +137,26 @@ def main(config_path: str) -> None:
             cfg["asam_eta"] = opt_cfg.get("eta", 0.01)
 
         for rho in rho_sweep:
-            per_seed = []
+            combo_key = (opt_name, rho)
+            ckpt_dir_check = os.path.join(experiments_dir, "baseline", model_name, "checkpoints")
+            all_seeds_done = (
+                combo_key in _done_results
+                and all(
+                    os.path.exists(os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_seed{seed}.pt"))
+                    for seed in seeds
+                )
+            )
+            if all_seeds_done:
+                print(f"\n[{model_name}] opt={opt_name} rho={rho} — fully done, skipping")
+                continue
+
+            # Seed results already saved from a previous partial run
+            per_seed: list[dict] = []
+            if combo_key in _done_results:
+                per_seed = list(_done_results[combo_key]["per_seed"])
+
             for seed in seeds:
                 # Skip if checkpoint already exists (supports resuming after restart)
-                ckpt_dir_check = os.path.join(experiments_dir, "baseline", model_name, "checkpoints")
                 ckpt_path_check = os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_seed{seed}.pt")
                 if os.path.exists(ckpt_path_check):
                     print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed} — skipping (checkpoint exists)")
@@ -140,7 +172,13 @@ def main(config_path: str) -> None:
             agg["optimizer"] = opt_name
             agg["rho"] = rho
             agg["model"] = model_name
-            all_results.append({"summary": agg, "per_seed": per_seed})
+            entry = {"summary": agg, "per_seed": per_seed}
+            if combo_key in _done_results:
+                all_results = [r for r in all_results
+                               if not (r.get("summary", {}).get("optimizer") == opt_name
+                                       and r.get("summary", {}).get("rho") == rho)]
+            all_results.append(entry)
+            _done_results[combo_key] = entry
             # Write after every (opt, rho) group so results survive preemption.
             save_results(out_path, all_results)
 
