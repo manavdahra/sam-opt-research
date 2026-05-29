@@ -63,7 +63,7 @@ def run_single(cfg: dict, opt_type: str, rho: float, alpha: float, seed: int) ->
         device,
         epochs=cfg["epochs"],
         scheduler=scheduler,
-        verbose=False,
+        verbose=True,
     )
 
     final = history[-1].copy()
