@@ -281,5 +281,5 @@ if __name__ == "__main__":
         "--config", default=None, help="Path to YAML config (for FLOPs estimation)"
     )
     args = parser.parse_args()
-    out_dir = args.out_dir or os.path.dirname(args.results) or "."
+    out_dir = args.out_dir or os.path.join(os.path.dirname(args.results) or ".", "plots")
     main(args.results, out_dir, args.config)

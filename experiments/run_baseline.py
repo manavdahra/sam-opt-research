@@ -45,6 +45,7 @@ def run_single(
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
         resize=resize,
+        max_samples=cfg.get("max_samples"),
     )
 
     model = build_model(cfg, device)

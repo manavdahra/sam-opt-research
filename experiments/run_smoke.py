@@ -57,7 +57,8 @@ def build_smoke_configs(work_dir: Path) -> list[dict]:
         **shared,
         "model": "resnet18",
         "epochs": 1,
-        "batch_size": 64,
+        "batch_size": 1,
+        "max_samples": 1,
         "lr": 0.1,
         "momentum": 0.9,
         "weight_decay": 5.0e-4,
@@ -67,7 +68,8 @@ def build_smoke_configs(work_dir: Path) -> list[dict]:
         **shared,
         "model": "vit_b_32",
         "epochs": 1,
-        "batch_size": 16,
+        "batch_size": 1,
+        "max_samples": 1,
         "lr": 0.01,
         "momentum": 0.9,
         "weight_decay": 5.0e-4,
@@ -127,6 +129,15 @@ def main() -> None:
         print(f"[{model}] Smoke reparam config written → {reparam_path}")
         print(f"[{model}] Running reparam smoke sweep...")
         run_reparam.main(str(reparam_path))
+
+        reparam_ckpt_dir = Path(reparam_cfg["experiments_dir"]) / "reparam" / model / "checkpoints"
+        reparam_ckpt_files = sorted(reparam_ckpt_dir.glob("*.pt"))
+        if not reparam_ckpt_files:
+            raise FileNotFoundError(f"No reparam checkpoints found in: {reparam_ckpt_dir}")
+        print(f"[{model}] Reparam checkpoints verified ({len(reparam_ckpt_files)} found).")
+
+        print(f"[{model}] Running flatness smoke check on reparam checkpoints...")
+        run_flatness.main(str(reparam_path), None, args.seed, experiment="reparam")
 
     print(f"Smoke outputs saved under {args.work_dir}")
 

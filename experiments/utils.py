@@ -104,14 +104,15 @@ def save_results(path: str, data: dict | list) -> None:
 
 # ── Run-directory helpers ────────────────────────────────────────────────────
 
-def make_run_id(model: str, opt_type: str, rho: float, seed: int) -> str:
+def make_run_id(model: str, opt_type: str, rho: float, seed: int, suffix: str = "") -> str:
     """Return a unique, descriptive run identifier.
 
-    Format: YYYYMMDD-HHMMSS-<model>-<opt>-rho<rho>-seed<seed>
+    Format: YYYYMMDD-HHMMSS-<model>-<opt>-rho<rho>-seed<seed>[-<suffix>]
     Example: 20260527-143012-resnet18-sam-rho0.05-seed42
     """
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    return f"{ts}-{model}-{opt_type}-rho{rho}-seed{seed}"
+    base = f"{ts}-{model}-{opt_type}-rho{rho}-seed{seed}"
+    return f"{base}-{suffix}" if suffix else base
 
 
 def write_run_dir(

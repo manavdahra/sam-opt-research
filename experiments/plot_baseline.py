@@ -106,6 +106,8 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
             [s for s in data if _summary(s)["optimizer"] == opt],
             key=lambda s: _summary(s)["rho"],
         )
+        if not rows:
+            continue
         rhos = [_summary(r)["rho"] for r in rows]
         gaps = [_summary(r)["divergence_rate_mean"] for r in rows]
         style = OPT_STYLE[opt]
@@ -129,6 +131,8 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
     best_labels, best_gaps, best_colors = [], [], []
     for opt in ("sgd", "sam", "msam", "asam"):
         rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+        if not rows_:
+            continue
         best_entry = min(rows_, key=lambda s: _summary(s)["divergence_rate_mean"])
         label = OPT_STYLE[opt]["label"]
         gap = _summary(best_entry)["divergence_rate_mean"]
@@ -175,6 +179,8 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
         labels, vals, colors = [], [], []
         for opt in ("sgd", "sam", "msam", "asam"):
             rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+            if not rows_:
+                continue
             best_entry = (max if maximize else min)(rows_, key=lambda s: _summary(s)[metric_key])
             label = OPT_STYLE[opt]["label"]
             val = _summary(best_entry)[metric_key]
@@ -204,9 +210,11 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
-def main(results_path: str) -> None:
+def main(results_path: str, out_dir: str | None = None) -> None:
     data = load_results(results_path)
-    out_dir = os.path.dirname(results_path) or "."
+    if out_dir is None:
+        out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
+    os.makedirs(out_dir, exist_ok=True)
 
     print(f"\nLoaded {len(data)} entries from {results_path}")
     print("\n── Accuracy table ──")
@@ -227,8 +235,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--results",
-        default="results/experiments/baseline/resnet18/baseline_results.json",
+        default="results/resnet18/experiments/baseline/resnet18/baseline_results.json",
         help="Path to baseline_results.json",
     )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory for output plots (default: <results_dir>/plots/)",
+    )
     args = parser.parse_args()
-    main(args.results)
+    main(args.results, args.out_dir)

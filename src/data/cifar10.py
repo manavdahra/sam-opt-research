@@ -57,6 +57,7 @@ def get_cifar10_loaders(
     batch_size: int = 128,
     num_workers: int = 4,
     resize: int | None = None,
+    max_samples: int | None = None,
 ) -> tuple[DataLoader, DataLoader]:
     """Return (train_loader, test_loader) for CIFAR-10.
 
@@ -67,6 +68,8 @@ def get_cifar10_loaders(
         batch_size: Mini-batch size for both loaders.
         num_workers: Number of DataLoader worker processes.
         resize: If given, resize images to this square size (e.g. 224 for ViT).
+        max_samples: If given, truncate both train and test sets to this many
+            samples (useful for smoke tests).
     """
     base_transforms = []
     if resize is not None:
@@ -97,6 +100,11 @@ def get_cifar10_loaders(
 
     train_dataset = _HFCifar10Dataset(hf_ds["train"], train_transform)
     test_dataset = _HFCifar10Dataset(hf_ds["test"], test_transform)
+
+    if max_samples is not None:
+        from torch.utils.data import Subset
+        train_dataset = Subset(train_dataset, range(min(max_samples, len(train_dataset))))
+        test_dataset = Subset(test_dataset, range(min(max_samples, len(test_dataset))))
 
     import torch
     pin_memory = torch.cuda.is_available()  # pin_memory is unsupported on MPS

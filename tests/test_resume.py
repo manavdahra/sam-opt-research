@@ -156,9 +156,12 @@ def test_reparam_skips_done_combinations(tmp_path):
 
     run_single_calls = []
 
-    def fake_run_single(cfg, opt_type, rho, alpha, seed):
+    def fake_run_single(cfg, opt_type, rho, alpha, seed, runs_dir, experiments_dir, results_root):
         run_single_calls.append((opt_type, rho, alpha, seed))
-        return {"test_acc": 0.8, "seed": seed, "optimizer": opt_type, "alpha": alpha, "rho": rho}
+        return {
+            "test_acc": 0.8, "seed": seed, "optimizer": opt_type, "alpha": alpha, "rho": rho,
+            "run_id": f"{opt_type}_{rho}_{alpha}_{seed}", "checkpoint": "", "history": [],
+        }
 
     with patch("experiments.run_reparam.run_single", side_effect=fake_run_single):
         main(config_path)
@@ -253,11 +256,96 @@ def test_reparam_all_seeds_done_no_crash(tmp_path):
 
     run_single_calls = []
 
-    def fake_run_single(cfg, opt_type, rho, alpha, seed):
+    def fake_run_single(cfg, opt_type, rho, alpha, seed, runs_dir, experiments_dir, results_root):
         run_single_calls.append((opt_type, rho, alpha, seed))
-        return {"test_acc": 0.8, "seed": seed, "optimizer": opt_type, "alpha": alpha, "rho": rho}
+        return {
+            "test_acc": 0.8, "seed": seed, "optimizer": opt_type, "alpha": alpha, "rho": rho,
+            "run_id": f"{opt_type}_{rho}_{alpha}_{seed}", "checkpoint": "", "history": [],
+        }
 
     with patch("experiments.run_reparam.run_single", side_effect=fake_run_single):
         main(config_path)  # must not raise
 
     assert run_single_calls == [], "All combos done — nothing should run"
+
+
+# ---------------------------------------------------------------------------
+# run_reparam checkpoint saving
+# ---------------------------------------------------------------------------
+
+def test_reparam_run_single_saves_checkpoint(tmp_path):
+    """run_reparam.run_single() must write a .pt checkpoint at the expected path."""
+    import sys
+    import torch
+    import torch.nn as nn
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from experiments.run_reparam import run_single
+
+    cfg = _make_reparam_cfg(tmp_path)
+    runs_dir = cfg["runs_dir"]
+    experiments_dir = cfg["experiments_dir"]
+    results_root = os.path.dirname(runs_dir.rstrip("/\\"))
+
+    tiny_model = nn.Linear(4, 2)
+    fake_history = [{
+        "train_loss": 0.5, "train_acc": 0.6, "test_loss": 0.6, "test_acc": 0.55,
+        "elapsed_sec": 1.0, "epoch": 1,
+    }]
+
+    with patch("experiments.run_reparam.get_device", return_value="cpu"), \
+         patch("experiments.run_reparam.set_seed"), \
+         patch("experiments.run_reparam.get_cifar10_loaders", return_value=(None, None)), \
+         patch("experiments.run_reparam.build_model", return_value=tiny_model), \
+         patch("experiments.run_reparam._apply_reparam"), \
+         patch("experiments.run_reparam.build_optimizer", return_value=(None, None)), \
+         patch("experiments.run_reparam.train", return_value=fake_history), \
+         patch("experiments.run_reparam.write_run_dir", return_value=str(tmp_path / "run_dir")), \
+         patch("experiments.run_reparam.update_index"):
+        result = run_single(cfg, "sgd", 0.0, 2.0, 42, runs_dir, experiments_dir, results_root)
+
+    expected_ckpt = (
+        tmp_path / "experiments" / "reparam" / "resnet18" / "checkpoints"
+        / "sgd_rho0.0_alpha2.0_seed42.pt"
+    )
+    assert expected_ckpt.exists(), f"Checkpoint not found at {expected_ckpt}"
+
+    # Verify the saved file is a valid state dict with the correct keys
+    state = torch.load(str(expected_ckpt), weights_only=True)
+    assert set(state.keys()) == set(tiny_model.state_dict().keys())
+
+    # result dict must carry the checkpoint path
+    assert result["checkpoint"] == str(expected_ckpt)
+
+
+def test_reparam_skips_seed_when_checkpoint_exists(tmp_path):
+    """run_reparam.main() skips a seed whose checkpoint already exists on disk."""
+    import sys, yaml
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from experiments.run_reparam import main
+
+    cfg = _make_reparam_cfg(tmp_path)
+    config_path = str(tmp_path / "cfg.yaml")
+    with open(config_path, "w") as f:
+        yaml.dump(cfg, f)
+
+    # Pre-create a checkpoint for sgd rho=0.0 alpha=1.0 seed=0 (no JSON entry)
+    ckpt_dir = tmp_path / "experiments" / "reparam" / "resnet18" / "checkpoints"
+    ckpt_dir.mkdir(parents=True)
+    (ckpt_dir / "sgd_rho0.0_alpha1.0_seed0.pt").touch()
+
+    run_single_calls = []
+
+    def fake_run_single(cfg, opt_type, rho, alpha, seed, runs_dir, experiments_dir, results_root):
+        run_single_calls.append((opt_type, rho, alpha, seed))
+        return {
+            "test_acc": 0.8, "seed": seed, "optimizer": opt_type, "alpha": alpha, "rho": rho,
+            "run_id": f"{opt_type}_{rho}_{alpha}_{seed}", "checkpoint": "", "history": [],
+        }
+
+    with patch("experiments.run_reparam.run_single", side_effect=fake_run_single):
+        main(config_path)
+
+    assert ("sgd", 0.0, 1.0, 0) not in run_single_calls, "seed=0 alpha=1.0 checkpoint exists — should be skipped"
+    assert ("sgd", 0.0, 1.0, 1) in run_single_calls
+    assert ("sgd", 0.0, 2.0, 0) in run_single_calls
+    assert ("sgd", 0.0, 2.0, 1) in run_single_calls
