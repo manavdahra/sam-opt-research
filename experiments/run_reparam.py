@@ -85,6 +85,18 @@ def main(config_path: str) -> None:
     opt_cfgs = cfg["optimizers"]
 
     all_results = []
+    out_path = os.path.join(experiments_dir, "reparam", model_name, "reparam_results.json")
+
+    # Load already-completed results to support resuming after restart
+    _done: set[tuple] = set()
+    if os.path.exists(out_path):
+        import json
+        with open(out_path) as _f:
+            all_results = json.load(_f)
+        for _r in all_results:
+            for _ps in _r.get("per_seed", []):
+                _done.add((_r["optimizer"], _r["rho"], _r["alpha"], _ps["seed"]))
+        print(f"Resuming: {len(_done)} (opt, rho, alpha, seed) combos already done.")
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
@@ -98,6 +110,9 @@ def main(config_path: str) -> None:
             for alpha in alpha_values:
                 per_seed = []
                 for seed in seeds:
+                    if (opt_name, rho, alpha, seed) in _done:
+                        print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} seed={seed} — skipping (done)")
+                        continue
                     print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} seed={seed}")
                     result = run_single(cfg, opt_type, rho, alpha, seed)
                     per_seed.append(result)

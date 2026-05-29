@@ -13,3 +13,6 @@ wheels/
 
 # Dataset
 /data/
+
+# Results
+/results/

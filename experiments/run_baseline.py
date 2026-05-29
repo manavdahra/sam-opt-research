@@ -123,6 +123,12 @@ def main(config_path: str) -> None:
         for rho in rho_sweep:
             per_seed = []
             for seed in seeds:
+                # Skip if checkpoint already exists (supports resuming after restart)
+                ckpt_dir_check = os.path.join(experiments_dir, "baseline", model_name, "checkpoints")
+                ckpt_path_check = os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_seed{seed}.pt")
+                if os.path.exists(ckpt_path_check):
+                    print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed} — skipping (checkpoint exists)")
+                    continue
                 print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed}")
                 result = run_single(cfg, opt_type, rho, seed, runs_dir, experiments_dir, results_root)
                 per_seed.append(result)
