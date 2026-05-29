@@ -17,6 +17,18 @@ dependencies = [
     "plotly>=5.0.0",
     "kaleido>=0.2.1",
     "fvcore>=0.1.5.post20221221",
+    # pytorch-triton is the nightly index's name for triton; it installs itself
+    # as 'triton' at runtime. Listed explicitly so uv can resolve it from the
+    # nightly index instead of chasing torch's git-hash triton pin.
+    "pytorch-triton; sys_platform == 'linux'",
+]
+
+[tool.uv]
+# torch nightly pins triton to a git-hash version that doesn't exist on PyPI.
+# We satisfy the triton requirement via pytorch-triton (same package, different
+# PyPI name) sourced from the nightly index, so suppress the transitive constraint.
+override-dependencies = [
+    "triton; sys_platform == 'win32'",
 ]
 
 [tool.uv.sources]
@@ -26,7 +38,7 @@ torch = [
 torchvision = [
     { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
 ]
-triton = [
+pytorch-triton = [
     { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
 ]
 
