@@ -3,7 +3,7 @@ name = "sam-opt-research"
 version = "0.1.0"
 description = "Benchmarking SAM, ASAM, and M-SAM optimizer variants"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13, <3.14"
 dependencies = [
     "torch>=2.2.0",
     "torchvision>=0.17.0",
