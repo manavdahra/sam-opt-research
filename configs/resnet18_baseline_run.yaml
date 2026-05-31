@@ -10,6 +10,7 @@ runs_dir: ./results/resnet18/runs
 experiments_dir: ./results/resnet18/experiments
 num_workers: 4
 resize: null  # no resize for ResNet-18 on CIFAR-10
+max_samples: 20
 
 optimizers:
   sgd:

@@ -16,6 +16,7 @@ wheels/
 
 # Results
 /results/
+/results_per_instance/
 
 # Coverage reports
 /htmlcov

@@ -4,6 +4,16 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+# ViT uses F.scaled_dot_product_attention; flash / mem-efficient kernels do not
+# support higher-order gradients (create_graph=True).  We select the math
+# backend for the entire Hutchinson computation to work around this.
+try:
+    from torch.nn.attention import SDPBackend, sdpa_kernel as _sdpa_kernel
+    _SDPA_CTX = lambda: _sdpa_kernel([SDPBackend.MATH])  # noqa: E731
+except ImportError:  # older PyTorch (<2.1)
+    import contextlib
+    _SDPA_CTX = contextlib.nullcontext
+
 
 def hutchinson_trace(
     model: nn.Module,
@@ -41,29 +51,31 @@ def hutchinson_trace(
     d = sum(p.numel() for p in params)
 
     trace_estimates: list[float] = []
-    for _ in range(n_samples):
-        # Sample Rademacher vector
-        zs = [torch.randint_like(p, 0, 2).float() * 2.0 - 1.0 for p in params]
+    # Force the math SDPA backend so that create_graph=True works with ViT.
+    with _SDPA_CTX():
+        for _ in range(n_samples):
+            # Sample Rademacher vector
+            zs = [torch.randint_like(p, 0, 2).float() * 2.0 - 1.0 for p in params]
 
-        # First backward: compute ∇L
-        for p in params:
-            if p.grad is not None:
-                p.grad.zero_()
-        outputs = model(inputs)
-        loss = loss_fn(outputs, targets)
-        grads = torch.autograd.grad(loss, params, create_graph=True)
+            # First backward: compute ∇L
+            for p in params:
+                if p.grad is not None:
+                    p.grad.zero_()
+            outputs = model(inputs)
+            loss = loss_fn(outputs, targets)
+            grads = torch.autograd.grad(loss, params, create_graph=True)
 
-        # Dot product ∇L · z
-        grad_dot_z = sum((g * z).sum() for g, z in zip(grads, zs))
+            # Dot product ∇L · z
+            grad_dot_z = sum((g * z).sum() for g, z in zip(grads, zs))
 
-        # Second backward: compute ∇(∇L · z) = Hz
-        hz = torch.autograd.grad(grad_dot_z, params, retain_graph=False)
+            # Second backward: compute ∇(∇L · z) = Hz
+            hz = torch.autograd.grad(grad_dot_z, params, retain_graph=False)
 
-        # Estimate: z^T H z / d
-        ztHz = sum((z * h).sum().item() for z, h in zip(zs, hz))
-        trace_estimates.append(ztHz / d)
+            # Estimate: z^T H z / d
+            ztHz = sum((z * h).sum().item() for z, h in zip(zs, hz))
+            trace_estimates.append(ztHz / d)
 
-        # Free graph
-        del grads, grad_dot_z, hz
+            # Free graph
+            del grads, grad_dot_z, hz
 
     return float(torch.tensor(trace_estimates).mean().item())

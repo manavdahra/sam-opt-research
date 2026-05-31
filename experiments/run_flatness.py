@@ -3,7 +3,7 @@
 Loads a trained model checkpoint (or trains a fresh one if no checkpoint is
 provided) and computes:
   1. Hutchinson trace estimate (tr(H)/d) — sharpness proxy.
-  2. 1D loss landscape along a random filter-normalized direction.
+  2. 2D loss landscape along a random filter-normalized direction.
 
 Single-checkpoint mode:
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
@@ -62,7 +62,6 @@ def _analyse_one(
     name: str,
     model: nn.Module,
     loss_fn: nn.Module,
-    train_loader,
     test_loader,
     device: torch.device,
     n_samples: int = 20,
@@ -70,11 +69,11 @@ def _analyse_one(
 ) -> tuple[float, list, list, list]:
     """Returns (trace, alphas_list, betas_list, losses_2d_list).
 
-    Hutchinson trace is measured on test data; landscape on training data.
+    Hutchinson trace is measured on test data; landscape on test data.
     """
     trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, train_loader, device, steps=31, range_=1.0)
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=2.5)
     return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
@@ -111,7 +110,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
 
     device = get_device()
     set_seed(seed)
-    train_loader, test_loader = get_cifar10_loaders(
+    _, test_loader = get_cifar10_loaders(
         data_dir=cfg["data_dir"],
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
@@ -123,7 +122,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
     model = _load_checkpoint(checkpoint, cfg, device)
-    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, train_loader, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
 
     plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(out_dir, exist_ok=True)
@@ -146,7 +145,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
 
     device = get_device()
     set_seed(seed)
-    train_loader, test_loader = get_cifar10_loaders(
+    _, test_loader = get_cifar10_loaders(
         data_dir=cfg["data_dir"],
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
@@ -185,7 +184,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
             key += f"_alpha{e['alpha']}"
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
-        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, train_loader, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
         sharpness_all[key] = trace
         landscape_all[key] = (alphas, betas, losses)
         # Incremental save after each checkpoint
@@ -243,7 +242,8 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
     by_opt: dict[str, list] = defaultdict(list)
     for key, trace in sharpness.items():
         opt = _opt_from_key(key)
-        rho = float(key.split("rho")[1])
+        rho_str = key.split("rho")[1].split("_")[0]
+        rho = float(rho_str)
         by_opt[opt].append((rho, trace))
 
     fig = go.Figure()
@@ -327,7 +327,7 @@ def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
     by_opt: dict[str, list] = defaultdict(list)
     for key, (alphas, betas, losses) in landscape.items():
         opt = _opt_from_key(key)
-        rho = float(key.split("rho")[1])
+        rho = float(key.split("rho")[1].split("_")[0])
         losses_arr = np.array(losses)
         mid = losses_arr.shape[0] // 2
         centre_loss = losses_arr[mid, mid]
@@ -399,6 +399,8 @@ if __name__ == "__main__":
                         help="Rademacher samples for Hutchinson trace (default: 20)")
     parser.add_argument("--max-batch", type=int, default=64,
                         help="Images per Hessian estimate (default: 64)")
+    parser.add_argument("--experiment", default=None, choices=["baseline", "reparam"],
+                        help="Checkpoint naming scheme: 'baseline' or 'reparam' (auto-detected from --ckpt-dir path if omitted)")
     args = parser.parse_args()
 
     if args.ckpt_dir:
@@ -411,7 +413,9 @@ if __name__ == "__main__":
             "flatness" if "experiments_dir" in _cfg else "",
             _cfg["model"],
         ).replace("//", "/")
-        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch)
+        # Auto-detect experiment type from path when not explicitly provided
+        _experiment = args.experiment or ("reparam" if "reparam" in args.ckpt_dir else "baseline")
+        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch, experiment=_experiment)
     elif args.checkpoint:
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)

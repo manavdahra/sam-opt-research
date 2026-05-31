@@ -11,6 +11,7 @@ experiments_dir: ./results/vit_b_32/experiments
 num_workers: 4
 resize: 224  # ViT-B/32 expects 224×224 inputs
 pretrained: true
+max_samples: 20
 
 optimizers:
   sgd:

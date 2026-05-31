@@ -21,6 +21,10 @@ dependencies = [
     # as 'triton' at runtime. Listed explicitly so uv can resolve it from the
     # nightly index instead of chasing torch's git-hash triton pin.
     "pytorch-triton; sys_platform == 'linux'",
+    "scipy>=1.17.1",
+    "nbformat>=5.10.4",
+    "ipywidgets>=8.1.8",
+    "anywidget>=0.11.0",
 ]
 
 [tool.uv]

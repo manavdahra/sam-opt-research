@@ -160,3 +160,17 @@ CPU:    Phase 6 (plots) ← waits for all JSON results
 
 Phases 1 & 3 share GPU 0 sequentially (or interleave if memory allows).
 Phases 2 & 4 share GPU 1 sequentially.
+
+
+## Instances:
+
+C.38440613 - resnet18 reparam
+C.38447562 - vit reparam
+C.38448435 - resnet18 baseline
+C.38455116 - vit baseline
+
+Generate loss landscape plots for vit baseline and reparam models
+```python
+uv run experiments/run_flatness.py --config configs/vit_baseline_run.yaml --ckpt-dir results/vit_b_32/experiments/baseline/vit_b_32/checkpoints/
+```
+

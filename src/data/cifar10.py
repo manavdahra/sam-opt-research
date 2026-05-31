@@ -58,6 +58,7 @@ def get_cifar10_loaders(
     num_workers: int = 4,
     resize: int | None = None,
     max_samples: int | None = None,
+    shuffle: bool = True,
 ) -> tuple[DataLoader, DataLoader]:
     """Return (train_loader, test_loader) for CIFAR-10.
 
@@ -118,7 +119,7 @@ def get_cifar10_loaders(
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
         worker_init_fn=_worker_init_fn,
@@ -126,7 +127,7 @@ def get_cifar10_loaders(
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
         worker_init_fn=_worker_init_fn,
