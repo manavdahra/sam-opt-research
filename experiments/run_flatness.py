@@ -189,6 +189,9 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         landscape_all[key] = (alphas, betas, losses)
         # Incremental save after each checkpoint
         save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
+        del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     save_results(os.path.join(out_dir, "landscape_all.json"), landscape_all)
 

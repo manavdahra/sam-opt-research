@@ -77,5 +77,7 @@ def hutchinson_trace(
 
             # Free graph
             del grads, grad_dot_z, hz
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     return float(torch.tensor(trace_estimates).mean().item())
