@@ -102,6 +102,11 @@ def loss_landscape_2d(
                 loss = loss_fn(outputs, targets)
             losses[i, j] = loss.item()
 
+    # Explicitly free all GPU tensors before returning
+    del model_copy, originals, dir1_dev, dir2_dev, inputs, targets
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return alphas, betas, losses
 
 

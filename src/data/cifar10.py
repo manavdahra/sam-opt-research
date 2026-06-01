@@ -7,6 +7,7 @@ from datasets import load_dataset
 
 """The mean and std values are computed by following script:
 
+.. code-block:: python
 import torch
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms

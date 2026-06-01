@@ -25,6 +25,7 @@ dependencies = [
     "nbformat>=5.10.4",
     "ipywidgets>=8.1.8",
     "anywidget>=0.11.0",
+    "hessian-eigenthings>=1.0.0a5",
 ]
 
 [tool.uv]

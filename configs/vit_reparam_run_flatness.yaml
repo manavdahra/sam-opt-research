@@ -1,6 +1,6 @@
 model: vit_b_32
 epochs: 50
-batch_size: 64
+batch_size: 16
 lr: 0.01
 momentum: 0.9
 weight_decay: 5.0e-4

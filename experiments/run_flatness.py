@@ -17,6 +17,7 @@ Batch mode (all checkpoints in a directory):
 from __future__ import annotations
 
 import argparse
+import gc
 import os
 import re
 import sys
@@ -144,14 +145,6 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         cfg = yaml.safe_load(f)
 
     device = get_device()
-    set_seed(seed)
-    _, test_loader = get_cifar10_loaders(
-        data_dir=cfg["data_dir"],
-        batch_size=cfg["batch_size"],
-        num_workers=cfg.get("num_workers", 4),
-        resize=cfg.get("resize"),
-        max_samples=cfg.get("max_samples"),
-    )
     loss_fn = nn.CrossEntropyLoss()
     os.makedirs(out_dir, exist_ok=True)
 
@@ -175,24 +168,50 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
             entry["alpha"] = float(m.group("alpha"))
         entries.append(entry)
 
-    sharpness_all: dict[str, float] = {}
-    landscape_all: dict[str, tuple] = {}
+    # Accumulate per-seed results grouped by config key (opt/rho[/alpha])
+    # so we can average across seeds rather than silently overwriting them.
+    from collections import defaultdict
+    traces_by_key:    dict[str, list[float]]       = defaultdict(list)
+    landscapes_by_key: dict[str, list[np.ndarray]] = defaultdict(list)
+    alphas_ref:  dict[str, list] = {}
+    betas_ref:   dict[str, list] = {}
 
     for i, e in enumerate(entries, 1):
         key = f"{e['opt']}_rho{e['rho']}"
         if "alpha" in e:
             key += f"_alpha{e['alpha']}"
+        set_seed(e["seed"])
+        _, test_loader = get_cifar10_loaders(
+            data_dir=cfg["data_dir"],
+            batch_size=cfg["batch_size"],
+            num_workers=cfg.get("num_workers", 4),
+            resize=cfg.get("resize"),
+            max_samples=cfg.get("max_samples"),
+        )
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
         trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
-        sharpness_all[key] = trace
-        landscape_all[key] = (alphas, betas, losses)
-        # Incremental save after each checkpoint
-        save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
-        del model
+        traces_by_key[key].append(trace)
+        landscapes_by_key[key].append(np.array(losses))
+        alphas_ref[key] = alphas
+        betas_ref[key]  = betas
+        del model, test_loader
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+        # Incremental save of per-seed-averaged sharpness seen so far
+        sharpness_partial = {k: float(np.mean(v)) for k, v in traces_by_key.items()}
+        save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_partial)
+
+    # Average across seeds
+    sharpness_all: dict[str, float] = {k: float(np.mean(v)) for k, v in traces_by_key.items()}
+    landscape_all: dict[str, tuple] = {
+        k: (alphas_ref[k], betas_ref[k], np.mean(landscapes_by_key[k], axis=0).tolist())
+        for k in traces_by_key
+    }
+
+    save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
     save_results(os.path.join(out_dir, "landscape_all.json"), landscape_all)
 
     plots_dir = os.path.join(out_dir, "plots")
@@ -324,7 +343,7 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
 
 
 def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
-    """2×2 contour grid — best ρ per optimizer (lowest centre loss)."""
+    r"""2 x 2 contour grid — best rho per optimizer (lowest centre loss)."""
     from collections import defaultdict
     Z_CLIP = 5.0
     by_opt: dict[str, list] = defaultdict(list)

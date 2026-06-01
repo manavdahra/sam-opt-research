@@ -7,12 +7,12 @@ def get_resnet18(num_classes: int = 10) -> nn.Module:
     """ResNet-18 adapted for CIFAR-10.
 
     Modifications vs. the ImageNet variant:
-    - First conv: 7×7 stride-2 → 3×3 stride-1
+    - First conv: 7x7 stride-2 → 3x3 stride-1
     - Removes the initial MaxPool layer
     - Final FC: 512 → num_classes
     """
     model = tvm.resnet18(weights=None, num_classes=num_classes)
-    # Adapt stem for 32×32 inputs
+    # Adapt stem for 32x32 inputs
     model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
     model.maxpool = nn.Identity()
     return model
@@ -23,17 +23,17 @@ def get_resnet18(num_classes: int = 10) -> nn.Module:
 # ---------------------------------------------------------------------------
 
 def apply_relu_reparam(model: nn.Module, alpha: float) -> None:
-    """Apply a function-preserving scale reparametrization to ResNet-18.
+    r"""Apply a function-preserving scale reparametrization to ResNet-18.
 
-    For each BasicBlock, ReLU is 1-homogeneous so scaling conv1's output by α
-    and compensating with 1/α on conv2's input channels exactly preserves the
+    For each BasicBlock, ReLU is 1-homogeneous so scaling conv1's output by $\alpha$
+    and compensating with $1/\alpha$ on conv2's input channels exactly preserves the
     network function.
 
     The transform is applied **in-place**.
 
     Args:
         model: A ResNet-18 returned by get_resnet18().
-        alpha: Scale factor. alpha=1.0 is a no-op.
+        alpha: Scale factor. $\alpha=1.0$ is a no-op.
     """
     if alpha == 1.0:
         return

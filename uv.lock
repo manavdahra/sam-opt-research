@@ -625,6 +625,22 @@ wheels = [
 ]
 
 [[package]]
+name = "hessian-eigenthings"
+version = "1.0.0a5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
+    { name = "torch", version = "2.12.0.dev20260407+cu128", source = { registry = "https://download.pytorch.org/whl/nightly/cu128" }, marker = "sys_platform == 'linux'" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a4/8542e9a54cae0e4c50731597dcd59881d919a666e0697891673f719896f4/hessian_eigenthings-1.0.0a5.tar.gz", hash = "sha256:741ec286623875d16006cd8a72b53738a6db2584b2135da922d17f396910c18c", size = 360737, upload-time = "2026-05-09T21:46:19.748Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e9/79/c292360c7aacb1d54bdcd3f0b9c61bcf028af8b558bb93e4b5735616cb67/hessian_eigenthings-1.0.0a5-py3-none-any.whl", hash = "sha256:2f9c46cec4682389348db877c6ba08d49fbed5c3687aaf899e5c47d0f507583b", size = 33135, upload-time = "2026-05-09T21:46:18.341Z" },
+]
+
+[[package]]
 name = "hf-xet"
 version = "1.4.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1862,6 +1878,7 @@ dependencies = [
     { name = "anywidget" },
     { name = "datasets" },
     { name = "fvcore" },
+    { name = "hessian-eigenthings" },
     { name = "ipywidgets" },
     { name = "kaleido" },
     { name = "matplotlib" },
@@ -1891,6 +1908,7 @@ requires-dist = [
     { name = "anywidget", specifier = ">=0.11.0" },
     { name = "datasets", specifier = ">=2.18.0" },
     { name = "fvcore", specifier = ">=0.1.5.post20221221" },
+    { name = "hessian-eigenthings", specifier = ">=1.0.0a5" },
     { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "kaleido", specifier = ">=0.2.1" },
     { name = "matplotlib", specifier = ">=3.8.0" },

@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 
 from src.models.vit import (
+    _TaylorGELU,
+    _replace_gelu_with_taylor,
     get_vit_b_32,
     apply_mlp_reparam_taylor,
     measure_reparam_deviation,
@@ -69,6 +71,47 @@ def test_taylor_reparam_applies_weights(vit_model):
             continue
         assert torch.allclose(reparam_linears[0].weight, orig_linears[0].weight * alpha)
         assert torch.allclose(reparam_linears[1].weight, orig_linears[1].weight / alpha)
+
+
+def test_taylor_reparam_replaces_gelu(vit_model):
+    """All GELU activations in MLP blocks must be replaced with _TaylorGELU."""
+    import copy
+    model = copy.deepcopy(vit_model)
+    apply_mlp_reparam_taylor(model, alpha=3.0)
+
+    for block in model.encoder.layers.children():
+        mlp = getattr(block, "mlp", None)
+        if mlp is None:
+            continue
+        for child in mlp:
+            assert not isinstance(child, nn.GELU), "nn.GELU still present after reparam"
+            if isinstance(child, _TaylorGELU):
+                break
+        else:
+            pytest.fail("No _TaylorGELU found in MLP block after reparam")
+
+
+@pytest.mark.parametrize("alpha", [0.5, 2.0, 5.0])
+def test_taylor_reparam_is_function_preserving(vit_model, dummy_input, alpha):
+    """Weight scaling must preserve output when the activation is TaylorGELU.
+
+    Both the baseline and reparametrised model must use TaylorGELU — comparing
+    against the original GELU model is wrong because the activation itself changes.
+    """
+    import copy
+    # Baseline: TaylorGELU, unscaled weights
+    model_base = copy.deepcopy(vit_model)
+    _replace_gelu_with_taylor(model_base)
+    # Reparametrised: TaylorGELU, scaled weights
+    model_reparam = copy.deepcopy(vit_model)
+    apply_mlp_reparam_taylor(model_reparam, alpha=alpha)
+
+    with torch.no_grad():
+        out_base = model_base(dummy_input)
+        out_reparam = model_reparam(dummy_input)
+    assert torch.allclose(out_base, out_reparam, atol=1e-4), (
+        f"alpha={alpha}: max diff={(out_base - out_reparam).abs().max().item():.6f}"
+    )
 
 
 # ---------------------------------------------------------------------------

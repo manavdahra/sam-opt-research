@@ -1,17 +1,19 @@
 import torch
 from torch.optim import Optimizer
 
-
 class ASAM(Optimizer):
-    """Adaptive Sharpness-Aware Minimization (Kwon et al., 2021).
+    r"""ASAM optimizer implementation.
+    Reference:
+        Kwon et al., "Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning
+        https://arxiv.org/abs/2102.06171
+    ASAM modifies the SAM perturbation to be scale-invariant:
+    .. math::
+        \epsilon = \rho \cdot \frac{T_w^2 \nabla L}{\|T_w \nabla L\|_2} \quad \text{where} \quad T_w = \text{diag}(|w|)
 
-    Adaptive perturbation:
-        ε = ρ · T_w² ∇L / ‖T_w ∇L‖₂
-    where T_w = diag(|w|), making the perturbation scale-invariant.
-
-    Same two-step API as SAM.
+    This makes the perturbation invariant to the scale of the weights, which is important for modern architectures with normalization layers (e.g. ResNets, ViTs) where weight norms can vary widely across layers.
+    ASAM has the same two-step API as SAM (first_step() to perturb, second_step() to update), and can be used with any base optimizer (e.g. SGD, Adam).
     """
-
+    
     def __init__(
         self,
         params,
@@ -28,15 +30,21 @@ class ASAM(Optimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False) -> None:
-        # Compute T_w scaled gradient: T_w * g = |w| * g  (element-wise)
-        # Then norm: ‖T_w * g‖₂
+        r"""Compute and apply ASAM perturbation.
+         ASAM perturbation is:
+         .. math::
+            \epsilon = \rho \cdot \frac{T_w^2 \nabla L}{\|T_w \nabla L\|_2} \quad \text{where} \quad T_w = \text{diag}(|w|)
+            This makes the perturbation invariant to the scale of the weights, which is important for modern architectures with normalization layers (e.g. ResNets, ViTs) where weight norms can vary widely across layers.
+        Args:
+            zero_grad: If True, set gradients to zero after the step (usually True).
+        """
         t_grad_norm = self._t_grad_norm()
         for group in self.param_groups:
             scale = group["rho"] / (t_grad_norm + 1e-12)
             for p in group["params"]:
                 if p.grad is None:
                     continue
-                # ε = ρ · |w|² · g / ‖|w| · g‖₂
+                
                 t_w = p.abs() + group["eta"]
                 e_w = (t_w * t_w * p.grad) * scale
                 p.add_(e_w)
@@ -62,6 +70,9 @@ class ASAM(Optimizer):
         )
 
     def _t_grad_norm(self) -> torch.Tensor:
+        r"""Compute the ASAM gradient norm: \|T_w \nabla L\|_2 where T_w = diag(|w| + eta).
+        This is the key difference from SAM, which uses the unscaled gradient norm.
+        """
         shared_device = self.param_groups[0]["params"][0].device
         norms = []
         for group in self.param_groups:
