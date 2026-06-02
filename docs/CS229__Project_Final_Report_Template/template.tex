@@ -13,6 +13,7 @@
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{caption}
 \usepackage{xcolor}
 \usepackage{lipsum}
 
@@ -103,13 +104,11 @@ However, existing empirical validations of M-SAM are highly limited, restricted 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{./cifar10_samples.png}
-    \caption{Example images from the CIFAR-10 dataset (one per class). Classes are, from left to right: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck.}
+    {\captionsetup{font=footnotesize}\caption{Example images from the CIFAR-10 dataset (one per class). Classes are, from left to right: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck.}}
     \label{fig:cifar10_samples}
 \end{figure}
 
 \section{Methods}
-Describe your learning algorithms, proposed algorithm(s), or theoretical proof(s). Make sure to include relevant mathematical notation. For example, you can briefly include the SVM optimization objective/formula or say what the softmax function is. It is okay to use formulas from the lecture notes. For each algorithm, give a short description (\~ 1 para- graph) of how it works. Again, we are looking for your understanding of how these machine learning algorithms work. Although the teaching staff probably know the algorithms, future readers may not (reports will be posted on the class website). Additionally, if you are using a niche or cutting-edge algorithm (e.g. long short-term memory, SURF features, or anything else not covered in the class), you may want to explain your algorithm using 1/2 paragraphs. Note: Theory/algorithms projects may have an appendix showing extended proofs (see Appendix section below).
-
 \subsection{Experimental setup}
 Our experiment is split into following stages:
 \begin{itemize}
@@ -174,17 +173,70 @@ M-SAM & $\hat{\epsilon}^\top G(\theta)\,\hat{\epsilon} \le \rho^2$ &
 
 \subsection{Analysis details}
 
-To compare optimizers, we evaluate the following metrics:
+To compare optimizers, we evaluate the following metrics for both baseline and reparametrized settings:
 \begin{itemize}
-    \item \textbf{Final test accuracy.} The percentage of correctly classified test samples after training completes.
+    \item \textbf{Training loss curves.} We plot training loss against epochs for each optimizer and $\alpha$ setting to visually assess convergence behavior and stability under reparametrization.
+    \item \textbf{Convergence speed.} The number of epochs, GFLOPs and wall-clock time required to reach a certain accuracy threshold of \(90, 95, 99\%\) of the final test accuracy achieved by the baseline (SGD with $\alpha=1.0$). This allows us to compare how quickly each optimizer converges under both standard and reparametrized settings.
     \item \textbf{Generalization gap.} The difference between training accuracy and test accuracy, indicating how well the model generalizes to unseen data.
     \item \textbf{Loss landscape curvature.} We use Hutchinson's trace estimator to approximate the trace of the Hessian of the loss function at the final trained parameters, which serves as a measure of local curvature. A lower trace indicates a flatter minimum.
-    \item \textbf{Convergence speed.} The number of epochs, GFLOPs and wall-clock time required to reach a certain accuracy threshold of \(90, 95, 99\%\) of the final test accuracy achieved by the baseline (SGD with $\alpha=1.0$). This allows us to compare how quickly each optimizer converges under both standard and reparametrized settings.
 \end{itemize}
 
-\section{Experiments / Results / Discussion}
-You should also give details about what (hyper)parameters you chose (e.g. why did you use X learning rate for gradient descent, what was your mini-batch size and why) and how you chose them. Did you do cross-validation, if so, how many folds? Before you list your results, make sure to list and explain what your primary metrics are: accuracy, precision, AUC, etc. Provide equations for the metrics if necessary. For results, you want to have a mixture of tables and plots. If you are solving a classification problem, you should include a confusion matrix or AUC/AUPRC curves. Include performance metrics such as precision, recall, and accuracy. For regression problems, state the average error. You should have both quantitative and qualitative results. To reiterate, you must have both quantitative and qualitative results! This includes unsupervised learning (talk with your project TA on how to quantify unsupervised methods). Include visualizations of results, heatmaps, examples of where your algorithm failed and a discussion of why certain algorithms failed or succeeded. In addition, explain whether you think you have overfit to your training set and what, if anything, you did to mitigate that. Make sure to discuss the figures/tables in your main text throughout this section. Your plots should include legends, axis labels, and have font sizes that are legible when printed.
+\section{Results \& Discussion}
 
+We present our results side by side between baseline and reparametrized settings to directly compare the impact of explicit weight distortions on each optimizer's performance. We first discuss convergence speed, then generalization gap, and finally loss landscape curvature.
+
+\subsection{Training loss curves}
+
+During the training we capture epoch loss data, we use this data to plot loss curves and deduce some qualitative observations on convergence behavior and stability for each of the scenarios. For ResNet-18, we observe training loss curves trending downwards and converging to low values for both baseline and reparametrized settings. See Figure~\ref{fig:resnet_good} for ResNet-18.
+
+However, for ViT-B/32, the epoch loss curves exhibit high generalisation gap and slower convergence for SGD and SAM for the case (seed = 40 \& $\rho = 0.1$). See Figure~\ref{fig:vit_interesting}. This aligns with our expectations, for the reasons discussed above. From the figure, it is evident that A-SAM and M-SAM are more stable and faster in convergence compared to other optimizers.
+
+\begin{figure}[H]
+  \begin{tabular}{cc}
+    \includegraphics[width=0.48\textwidth]{./vit_sgd_stuck.png} & \includegraphics[width=0.48\textwidth]{./vit_asam_slow_convergence.png} \\
+    \includegraphics[width=0.48\textwidth]{./vit_sam_slow_convergence.png} & \includegraphics[width=0.48\textwidth]{./vit_msam_slow_convergence.png} \\
+  \end{tabular}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ViT-B/32 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges fastest and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}\label{fig:vit_interesting}}
+\end{figure}
+
+\subsection{Convergence rate}
+
+\begin{figure}[H]
+  \includegraphics[width=\textwidth]{./resnet_baseline_convergence.png}
+  {\captionsetup{font=footnotesize}\caption{shows 3 bar plots for \emph{baseline} ResNet-18 trained with SGD(gray), SAM(blue), ASAM(orange), and M-SAM(green). Left most plot shows num of Epochs required to reach accuracy thresholds for \(90\%, 95\%, 99\%\) of the final training accuracy. Middle plot shows GFLOPs to reach the same accuracy thresholds. Rightmost plot shows wall-clock time to reach the same accuracy thresholds.}
+  \label{fig:resnet_baseline_convergence}}
+\end{figure}
+
+\begin{figure}[H]
+  \includegraphics[width=\textwidth]{./vit_baseline_convergence.png}
+  {\captionsetup{font=footnotesize}\caption{shows 3 bar plots for \emph{baseline} ViT trained with SGD(gray), SAM(blue), ASAM(orange), and M-SAM(green). Left most plot shows num of Epochs required to reach accuracy thresholds for \(90\%, 95\%, 99\%\) of the final training accuracy. Middle plot shows GFLOPs to reach the same accuracy thresholds. Rightmost plot shows wall-clock time to reach the same accuracy thresholds.}
+  \label{fig:vit_baseline_convergence}}
+\end{figure}
+
+Key observtions from Figure \ref{fig:resnet_baseline_convergence} and Figure \ref{fig:vit_baseline_convergence}: 
+\begin{itemize}
+  \item Overall, M-SAM requires least number of epochs to reach the accuracy thresholds, indicating that its geometry-aware perturbation allows it to navigate the loss landscape more effectively than the other optimizers.
+  \item SGD requires the least amount of GFLOPs, which is obvious since it performs the simplest updates. But, interestingly, M-SAM requires the second least amount of GFLOPs which can attributed to the fact that it also requires least number of epochs to converge, thus offsetting the additional computational cost of its more complex perturbation.
+  \item Wall clock time is more nuanced, with M-SAM being the fastest for ResNet-18 but not for ViT. This may be due to the fact that the computational overhead of M-SAM's perturbation is more significant for larger models like ViT, where the cost of computing the Monge metric and its inverse can become a bottleneck. However, even in ViT, M-SAM still outperforms ASAM and SGD in terms of wall-clock time, suggesting that its faster convergence still provides a net benefit despite the increased per-step cost.
+  \item For simpler architecture (ResNet-18), SAM and M-SAM show similar convergence rates, both outperforming SGD and ASAM. Even though SGD takes least number of GFLOPS, it still requires most amount of epochs to converge to the final accuracy. 
+  \item For the more complex architecture (ViT-B/32), M-SAM shows a significantly faster convergence (at 99\% accuracy) compared to all other optimizers, including SAM. This suggests that the geometry-aware perturbation in M-SAM may be particularly beneficial for navigating the more complex loss landscape of ViTs.
+  \item Out of the two scale-invariant methods, ASAM shows a slower convergence compared to M-SAM, which may be due to its diagonal scaling operator not capturing inter-parameter correlations effectively. This is especially evident in the ViT architecture, where ASAM's performance is notably worse than M-SAM.
+\end{itemize}
+
+\subsection{Generalization Gap}
+
+\begin{figure}[H]
+  \includegraphics[width=\textwidth]{./resnet_avg_gen_gap.png}
+  {\captionsetup{font=footnotesize}\caption{shows a bar plot comparing the average generalization gap (test loss - train loss) across all seeds for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM under baseline ($\alpha=1.0$) settings.}
+  \label{fig:resnet_generalization_gap}}
+\end{figure}
+
+Key observations from Figure \ref{fig:resnet_generalization_gap}:
+\begin{itemize}
+  \item SAM and M-SAM achieve the smallest generalization gap, indicating that they generalize best to unseen data. This suggests that M-SAM is effective at finding flatter minima that generalize well. It is interesting to see SAM performing comparably to M-SAM, which may be due to the fact that the ResNet-18 architecture is more stable and has smoother loss landscapes compared to larger models, making the Euclidean perturbation in SAM more effective.
+  \item ASAM has a larger generalization gap than both SAM and M-SAM, indicating that its scale-invariant perturbation may not be as effective in improving generalization. This can be attributed to multiple factors, 1) the diagonal scaling operator in ASAM may not capture inter-parameter correlations, leading to suboptimal perturbations, and 2) the perturbation radius $\rho$ values chosen for this experiment may not be in optimal range for ASAM. Further tuning of the hyper-parameters for ASAM could potentially improve its performance, but it does highlight to the fact that ASAM is more sensitive to hyper-parameter choices, which can be a practical limitation.
+  \item SGD has the largest generalization gap, which is consistent with the expectation that it may converge to sharper minima that do not generalize as well to unseen data.
+\end{itemize}
 
 \section{Conclusion / Future Work}
 Summarize your report and reiterate key points. Which algorithms were the highest-performing? Why do you think that some algorithms worked better than others? For future work, if you had more time, more team members, or more computational resources, what would you explore?
@@ -264,14 +316,22 @@ Taylor approximation of GELU activation function around zero is given by:
   &= 0.5 x \quad \text{for small } x
 \end{align*}
 
-\subsection{Accuracy and loss curves for training and test}
+\subsection{ResNet loss curves for baseline and reparametrized settings}
 \begin{figure}[H]
   \begin{tabular}{cc}
-    \includegraphics[width=0.48\textwidth]{./sgd_good.png} & \includegraphics[width=0.48\textwidth]{./asam_good.png} \\
-    \includegraphics[width=0.48\textwidth]{./sam_good.png} & \includegraphics[width=0.48\textwidth]{./msam_good.png} \\
+    \includegraphics[width=0.48\textwidth]{./resnet_sgd_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./resnet_asam_loss_curve.png} \\
+    \includegraphics[width=0.48\textwidth]{./resnet_sam_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./resnet_msam_loss_curve.png} \\
   \end{tabular}
-    \caption{Epoch-wise training loss curves for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}
-    \label{fig:sgd_good}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}\label{fig:resnet_good}}
+\end{figure}
+
+\subsection{ViT loss curves for baseline and reparametrized settings}
+\begin{figure}[H]
+  \begin{tabular}{cc}
+    \includegraphics[width=0.48\textwidth]{./vit_sgd_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./vit_asam_loss_curve.png} \\
+    \includegraphics[width=0.48\textwidth]{./vit_sam_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./vit_msam_loss_curve.png} \\
+  \end{tabular}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ViT trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}\label{fig:vit_good}}
 \end{figure}
 
 \section{Contributions}

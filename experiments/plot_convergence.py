@@ -41,8 +41,8 @@ from src.analysis.metrics import (
 
 # ── constants ────────────────────────────────────────────────────────────────
 
-THRESHOLDS = [0.90, 0.94, 0.95]
-THRESHOLD_LABELS = ["90%", "94%", "95%"]
+THRESHOLDS = [0.90, 0.95, 0.99]
+THRESHOLD_LABELS = ["90%", "95%", "99%"]
 
 OPT_STYLE: dict[str, dict] = {
     "sgd":  {"color": "#9E9E9E", "label": "SGD"},
@@ -117,12 +117,12 @@ def best_rho_entries(data: list[dict]) -> dict[str, dict]:
 
 
 def _acc_curves(entry: dict) -> list[list[float]]:
-    """Return per-seed test_acc curves from per_seed history lists."""
+    """Return per-seed train_acc curves from per_seed history lists."""
     curves = []
     for seed_result in entry["per_seed"]:
         history = seed_result.get("history")
         if history:
-            curves.append([row["test_acc"] for row in history])
+            curves.append([row["train_acc"] for row in history])
     return curves
 
 

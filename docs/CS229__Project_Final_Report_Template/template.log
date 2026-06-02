@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  2 JUN 2026 00:41
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  2 JUN 2026 04:51
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -308,6 +308,24 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \float@box=\box56
 \@float@everytoks=\toks30
 \@floatcapt=\box57
+) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2023/08/05 v3.6o Customizing captions (AR)
+ (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
+\caption@tempdima=\dimen188
+\captionmargin=\dimen189
+\caption@leftmargin=\dimen190
+\caption@rightmargin=\dimen191
+\caption@width=\dimen192
+\caption@indent=\dimen193
+\caption@parindent=\dimen194
+\caption@hangindent=\dimen195
+Package caption Info: Standard document class detected.
+)
+\c@caption@flags=\count318
+\c@continuedfloat=\count319
+Package caption Info: float package is loaded.
+Package caption Info: hyperref package is loaded.
 ) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/xcolor/xcolor.sty
 Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/graphics-cfg/color.cfg
@@ -328,35 +346,35 @@ Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.
 Package: expl3 2026-03-20 L3 programming layer (loader) 
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2026-02-18 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count318
+\l__color_backend_stack_int=\count320
 ))
 Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys
 )
 Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
-\g__lipsum_par_int=\count319
-\l__lipsum_a_int=\count320
-\l__lipsum_b_int=\count321
+\g__lipsum_par_int=\count321
+\l__lipsum_a_int=\count322
+\l__lipsum_b_int=\count323
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/lipsum/lipsum.ltd.tex)) (./template.aux)
 \openout1 = `template.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 46.
+LaTeX Font Info:    ... okay on input line 46.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -424,18 +442,18 @@ LaTeX Font Info:    ... okay on input line 45.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 45.
+Package hyperref Info: Link coloring OFF on input line 46.
 (./template.out) (./template.out)
 \@outlinefile=\write3
 \openout3 = `template.out'.
 
-LaTeX Info: Redefining \microtypecontext on input line 45.
-Package microtype Info: Applying patch `item' on input line 45.
-Package microtype Info: Applying patch `toc' on input line 45.
-Package microtype Info: Applying patch `eqnum' on input line 45.
-Package microtype Info: Applying patch `footnote' on input line 45.
-Package microtype Info: Applying patch `verbatim' on input line 45.
-LaTeX Info: Redefining \microtypesetup on input line 45.
+LaTeX Info: Redefining \microtypecontext on input line 46.
+Package microtype Info: Applying patch `item' on input line 46.
+Package microtype Info: Applying patch `toc' on input line 46.
+Package microtype Info: Applying patch `eqnum' on input line 46.
+Package microtype Info: Applying patch `footnote' on input line 46.
+Package microtype Info: Applying patch `verbatim' on input line 46.
+LaTeX Info: Redefining \microtypesetup on input line 46.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -453,16 +471,19 @@ Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
-)) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-cmr.cfg
+))
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
+ (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 48.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 49.
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 ) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 48.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 49.
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-msb.cfg
@@ -479,98 +500,151 @@ Package microtype Info: Loading generic protrusion settings for font family
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [2]
-<./cifar10_samples.png, id=131, 1076.1003pt x 122.1363pt>
+<./cifar10_samples.png, id=148, 1076.1003pt x 122.1363pt>
 File: ./cifar10_samples.png Graphic file (type png)
 <use ./cifar10_samples.png>
-Package pdftex.def Info: ./cifar10_samples.png  used on input line 105.
+Package pdftex.def Info: ./cifar10_samples.png  used on input line 106.
 (pdftex.def)             Requested size: 397.48499pt x 45.11331pt.
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 116.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 115.
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-) [3
-pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.149 
-       <./cifar10_samples.png>] [4
-pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.187 
-      ]
-Underfull \vbox (badness 2790) has occurred while \output is active []
-
- [5]
-<./sgd_good.png, id=153, 702.625pt x 451.6875pt>
-File: ./sgd_good.png Graphic file (type png)
-<use ./sgd_good.png>
-Package pdftex.def Info: ./sgd_good.png  used on input line 270.
+) [3 <./cifar10_samples.png>] [4]
+<./vit_sgd_stuck.png, id=170, 702.625pt x 451.6875pt>
+File: ./vit_sgd_stuck.png Graphic file (type png)
+<use ./vit_sgd_stuck.png>
+Package pdftex.def Info: ./vit_sgd_stuck.png  used on input line 196.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./asam_good.png, id=154, 702.625pt x 451.6875pt>
-File: ./asam_good.png Graphic file (type png)
-<use ./asam_good.png>
-Package pdftex.def Info: ./asam_good.png  used on input line 270.
+<./vit_asam_slow_convergence.png, id=171, 702.625pt x 451.6875pt>
+File: ./vit_asam_slow_convergence.png Graphic file (type png)
+<use ./vit_asam_slow_convergence.png>
+Package pdftex.def Info: ./vit_asam_slow_convergence.png  used on input line 196.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./sam_good.png, id=155, 702.625pt x 451.6875pt>
-File: ./sam_good.png Graphic file (type png)
-<use ./sam_good.png>
-Package pdftex.def Info: ./sam_good.png  used on input line 271.
+<./vit_sam_slow_convergence.png, id=172, 702.625pt x 451.6875pt>
+File: ./vit_sam_slow_convergence.png Graphic file (type png)
+<use ./vit_sam_slow_convergence.png>
+Package pdftex.def Info: ./vit_sam_slow_convergence.png  used on input line 197.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./msam_good.png, id=156, 702.625pt x 451.6875pt>
-File: ./msam_good.png Graphic file (type png)
-<use ./msam_good.png>
-Package pdftex.def Info: ./msam_good.png  used on input line 271.
+<./vit_msam_slow_convergence.png, id=173, 702.625pt x 451.6875pt>
+File: ./vit_msam_slow_convergence.png Graphic file (type png)
+<use ./vit_msam_slow_convergence.png>
+Package pdftex.def Info: ./vit_msam_slow_convergence.png  used on input line 197.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
 
-Overfull \hbox (8.09723pt too wide) in paragraph at lines 269--273
-[][]
+Overfull \hbox (8.09723pt too wide) in paragraph at lines 195--199
+[][] 
+ []
+
+<./resnet_baseline_convergence.png, id=174, 1903.11pt x 501.875pt>
+File: ./resnet_baseline_convergence.png Graphic file (type png)
+<use ./resnet_baseline_convergence.png>
+Package pdftex.def Info: ./resnet_baseline_convergence.png  used on input line 205.
+(pdftex.def)             Requested size: 397.48499pt x 104.82251pt.
+<./vit_baseline_convergence.png, id=175, 1903.11pt x 501.875pt>
+File: ./vit_baseline_convergence.png Graphic file (type png)
+<use ./vit_baseline_convergence.png>
+Package pdftex.def Info: ./vit_baseline_convergence.png  used on input line 211.
+(pdftex.def)             Requested size: 397.48499pt x 104.82251pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [5 <./vit_sgd_stuck.png> <./vit_asam_slow_convergence.png> <./vit_sam_slow_convergence.png> <./vit_msam_slow_convergence.png> <./resnet_baseline_convergence.png>]
+<./resnet_avg_gen_gap.png, id=191, 1903.11pt x 839.135pt>
+File: ./resnet_avg_gen_gap.png Graphic file (type png)
+<use ./resnet_avg_gen_gap.png>
+Package pdftex.def Info: ./resnet_avg_gen_gap.png  used on input line 229.
+(pdftex.def)             Requested size: 397.48499pt x 175.26323pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [6 <./vit_baseline_convergence.png>]
+Underfull \vbox (badness 3579) has occurred while \output is active []
+
+ [7 <./resnet_avg_gen_gap.png>] [8]
+<./resnet_sgd_loss_curve.png, id=210, 702.625pt x 451.6875pt>
+File: ./resnet_sgd_loss_curve.png Graphic file (type png)
+<use ./resnet_sgd_loss_curve.png>
+Package pdftex.def Info: ./resnet_sgd_loss_curve.png  used on input line 322.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./resnet_asam_loss_curve.png, id=211, 702.625pt x 451.6875pt>
+File: ./resnet_asam_loss_curve.png Graphic file (type png)
+<use ./resnet_asam_loss_curve.png>
+Package pdftex.def Info: ./resnet_asam_loss_curve.png  used on input line 322.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./resnet_sam_loss_curve.png, id=212, 702.625pt x 451.6875pt>
+File: ./resnet_sam_loss_curve.png Graphic file (type png)
+<use ./resnet_sam_loss_curve.png>
+Package pdftex.def Info: ./resnet_sam_loss_curve.png  used on input line 323.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./resnet_msam_loss_curve.png, id=213, 702.625pt x 451.6875pt>
+File: ./resnet_msam_loss_curve.png Graphic file (type png)
+<use ./resnet_msam_loss_curve.png>
+Package pdftex.def Info: ./resnet_msam_loss_curve.png  used on input line 323.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+
+Overfull \hbox (8.09723pt too wide) in paragraph at lines 321--325
+[][] 
+ []
+
+<./vit_sgd_loss_curve.png, id=214, 702.625pt x 451.6875pt>
+File: ./vit_sgd_loss_curve.png Graphic file (type png)
+<use ./vit_sgd_loss_curve.png>
+Package pdftex.def Info: ./vit_sgd_loss_curve.png  used on input line 331.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./vit_asam_loss_curve.png, id=215, 702.625pt x 451.6875pt>
+File: ./vit_asam_loss_curve.png Graphic file (type png)
+<use ./vit_asam_loss_curve.png>
+Package pdftex.def Info: ./vit_asam_loss_curve.png  used on input line 331.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./vit_sam_loss_curve.png, id=216, 702.625pt x 451.6875pt>
+File: ./vit_sam_loss_curve.png Graphic file (type png)
+<use ./vit_sam_loss_curve.png>
+Package pdftex.def Info: ./vit_sam_loss_curve.png  used on input line 332.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+<./vit_msam_loss_curve.png, id=217, 702.625pt x 451.6875pt>
+File: ./vit_msam_loss_curve.png Graphic file (type png)
+<use ./vit_msam_loss_curve.png>
+Package pdftex.def Info: ./vit_msam_loss_curve.png  used on input line 332.
+(pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
+
+Overfull \hbox (8.09723pt too wide) in paragraph at lines 330--334
+[][] 
  []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [6
-pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.276 
-      ]
+ [9 <./resnet_sgd_loss_curve.png> <./resnet_asam_loss_curve.png> <./resnet_sam_loss_curve.png> <./resnet_msam_loss_curve.png>]
 
-Package natbib Warning: Citation `rajpurkar2018know' on page 7 undefined on input line 284.
+Package natbib Warning: Citation `rajpurkar2018know' on page 10 undefined on input line 344.
 
 
-Package natbib Warning: Citation `rajpurkar2018know' on page 7 undefined on input line 286.
+Package natbib Warning: Citation `rajpurkar2018know' on page 10 undefined on input line 346.
 
-(./template.bbl [7
-pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.23 ..., Smelyanskiy, and Tang}]{keskar2016large}
-                                                   <./sgd_good.png> <./asam_good.png> <./sam_good.png> <./msam_good.png>])
+(./template.bbl [10 <./vit_sgd_loss_curve.png> <./vit_asam_loss_curve.png> <./vit_sam_loss_curve.png> <./vit_msam_loss_curve.png>])
 
 Package natbib Warning: There were undefined citations.
 
-[8] (./template.aux)
+[11] (./template.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `template.out' has not changed.
-(rerunfilecheck)             Checksum: 4D7AC1FF159FE039BC08E03D1F3AEA44;2982.
+(rerunfilecheck)             Checksum: DA4C4E2CE1AE2F2C41C9D216B41BF21F;3789.
  ) 
 Here is how much of TeX's memory you used:
- 13496 strings out of 469296
- 215755 string characters out of 5464032
- 760240 words of memory out of 5000000
- 41916 multiletter control sequences out of 15000+600000
- 664727 words of font info for 186 fonts, out of 8000000 for 9000
+ 14979 strings out of 469296
+ 245465 string characters out of 5464032
+ 784691 words of memory out of 5000000
+ 43325 multiletter control sequences out of 15000+600000
+ 673027 words of font info for 231 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 75i,12n,79p,1509b,575s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on template.pdf (8 pages, 325586 bytes).
+ 75i,12n,79p,1248b,573s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on template.pdf (11 pages, 705437 bytes).
 PDF statistics:
- 256 PDF objects out of 1000 (max. 8388607)
- 209 compressed objects within 3 object streams
- 43 named destinations out of 1000 (max. 500000)
- 42162 words of extra memory for PDF output out of 42996 (max. 10000000)
+ 329 PDF objects out of 1000 (max. 8388607)
+ 253 compressed objects within 3 object streams
+ 56 named destinations out of 1000 (max. 500000)
+ 47369 words of extra memory for PDF output out of 51595 (max. 10000000)
 

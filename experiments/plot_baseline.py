@@ -169,23 +169,20 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
 def plot_summary(data: list[dict], out_dir: str) -> None:
     fig = make_subplots(
         rows=1, cols=2,
-        subplot_titles=["Best Test Accuracy per Optimizer", "Smallest Generalization Gap per Optimizer"],
+        subplot_titles=["Avg Test Accuracy per Optimizer", "Avg Generalization Gap per Optimizer"],
     )
 
-    for col_idx, (metric_key, maximize) in enumerate([
-        ("test_acc_mean", True),
-        ("divergence_rate_mean", False),
+    for col_idx, metric_key in enumerate([
+        "test_acc_mean",
+        "divergence_rate_mean",
     ], start=1):
         labels, vals, colors = [], [], []
         for opt in ("sgd", "sam", "msam", "asam"):
             rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
             if not rows_:
                 continue
-            best_entry = (max if maximize else min)(rows_, key=lambda s: _summary(s)[metric_key])
-            label = OPT_STYLE[opt]["label"]
-            val = _summary(best_entry)[metric_key]
-            rho = _summary(best_entry)["rho"]
-            labels.append(f"{label}<br>(ρ={rho})")
+            val = sum(_summary(r)[metric_key] for r in rows_) / len(rows_)
+            labels.append(OPT_STYLE[opt]["label"])
             vals.append(val)
             colors.append(OPT_STYLE[opt]["color"])
 
