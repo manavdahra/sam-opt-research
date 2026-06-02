@@ -21,10 +21,21 @@ import torch.nn as nn
 from src.data.cifar10 import get_cifar10_loaders
 from src.training.trainer import train
 from src.analysis.metrics import aggregate_seeds, divergence_rate
-from experiments.utils import get_device, set_seed, build_model, build_optimizer, save_results
+from experiments.utils import (
+    get_device, set_seed, build_model, build_optimizer, save_results,
+    make_run_id, write_run_dir, update_index,
+)
 
 
-def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
+def run_single(
+    cfg: dict,
+    opt_type: str,
+    rho: float,
+    seed: int,
+    runs_dir: str,
+    experiments_dir: str,
+    results_root: str,
+) -> dict:
     device = get_device()
     set_seed(seed)
 
@@ -34,6 +45,7 @@ def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
         resize=resize,
+        max_samples=cfg.get("max_samples"),
     )
 
     model = build_model(cfg, device)
@@ -52,17 +64,37 @@ def run_single(cfg: dict, opt_type: str, rho: float, seed: int) -> dict:
         verbose=True,
     )
 
-    ckpt_dir = os.path.join(cfg["results_dir"], cfg["model"], "checkpoints")
+    # ── Write canonical per-run directory ────────────────────────────────────
+    run_id = make_run_id(cfg["model"], opt_type, rho, seed)
+    run_dir = write_run_dir(runs_dir, run_id, cfg, history, model.state_dict())
+    print(f"Run artefacts saved → {run_dir}")
+
+    # ── Convenience copy for run_flatness.py batch mode ──────────────────────
+    ckpt_dir = os.path.join(experiments_dir, "baseline", cfg["model"], "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
     ckpt_path = os.path.join(ckpt_dir, f"{opt_type}_rho{rho}_seed{seed}.pt")
     torch.save(model.state_dict(), ckpt_path)
-    print(f"Checkpoint saved → {ckpt_path}")
 
-    final = history[-1]
+    # ── Update index.json ────────────────────────────────────────────────────
+    import datetime
+    update_index(results_root, run_id, {
+        "model": cfg["model"],
+        "optimizer": opt_type,
+        "rho": rho,
+        "seed": seed,
+        "test_acc": history[-1]["test_acc"],
+        "timestamp": datetime.datetime.now().isoformat(),
+        "experiment": "baseline",
+        "run_dir": run_dir,
+        "checkpoint": ckpt_path,
+    })
+
+    final = history[-1].copy()
     final["divergence_rate"] = divergence_rate(final["train_loss"], final["test_loss"])
     final["seed"] = seed
     final["optimizer"] = opt_type
     final["rho"] = rho
+    final["run_id"] = run_id
     final["checkpoint"] = ckpt_path
     final["history"] = history
     return final
@@ -72,33 +104,82 @@ def main(config_path: str) -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
-    results_dir = cfg["results_dir"]
+    runs_dir = cfg["runs_dir"]
+    experiments_dir = cfg["experiments_dir"]
+    results_root = os.path.dirname(runs_dir.rstrip("/\\"))
     model_name = cfg["model"]
     seeds = cfg["seeds"]
     opt_cfgs = cfg["optimizers"]
 
     all_results = []
-    out_path = os.path.join(results_dir, model_name, "baseline_results.json")
+    out_path = os.path.join(experiments_dir, "baseline", model_name, "baseline_results.json")
+
+    # Build lookup of already-completed (opt, rho) groups for resume support.
+    _done_results: dict[tuple, dict] = {}
+    _done_seeds: set[tuple] = set()
+    if os.path.exists(out_path):
+        import json
+        with open(out_path) as _f:
+            all_results = json.load(_f)
+        for _entry in all_results:
+            _agg = _entry.get("summary", {})
+            _opt = _agg.get("optimizer")
+            _rho = _agg.get("rho")
+            for _ps in _entry.get("per_seed", []):
+                _done_seeds.add((_opt, _rho, _ps["seed"]))
+            _done_results[(_opt, _rho)] = _entry
+        print(f"Resuming: {len(_done_seeds)} (opt, rho, seed) combos already done.")
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
         rho_sweep = opt_cfg.get("rho_sweep", [0.0])
+        # Inject per-optimizer eta into cfg so build_optimizer can read it
+        if opt_type == "asam":
+            cfg["asam_eta"] = opt_cfg.get("eta", 0.01)
 
         for rho in rho_sweep:
-            per_seed = []
+            combo_key = (opt_name, rho)
+            ckpt_dir_check = os.path.join(experiments_dir, "baseline", model_name, "checkpoints")
+            all_seeds_done = (
+                combo_key in _done_results
+                and all(
+                    os.path.exists(os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_seed{seed}.pt"))
+                    for seed in seeds
+                )
+            )
+            if all_seeds_done:
+                print(f"\n[{model_name}] opt={opt_name} rho={rho} — fully done, skipping")
+                continue
+
+            # Seed results already saved from a previous partial run
+            per_seed: list[dict] = []
+            if combo_key in _done_results:
+                per_seed = list(_done_results[combo_key]["per_seed"])
+
             for seed in seeds:
+                # Skip if checkpoint already exists (supports resuming after restart)
+                ckpt_path_check = os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_seed{seed}.pt")
+                if os.path.exists(ckpt_path_check):
+                    print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed} — skipping (checkpoint exists)")
+                    continue
                 print(f"\n[{model_name}] opt={opt_name} rho={rho} seed={seed}")
-                result = run_single(cfg, opt_type, rho, seed)
+                result = run_single(cfg, opt_type, rho, seed, runs_dir, experiments_dir, results_root)
                 per_seed.append(result)
 
-            _non_numeric = {"history", "seed", "optimizer", "checkpoint"}
+            _non_numeric = {"history", "seed", "optimizer", "checkpoint", "run_id", "model"}
             agg = aggregate_seeds(
                 [{k: v for k, v in r.items() if k not in _non_numeric} for r in per_seed]
             )
             agg["optimizer"] = opt_name
             agg["rho"] = rho
             agg["model"] = model_name
-            all_results.append({"summary": agg, "per_seed": per_seed})
+            entry = {"summary": agg, "per_seed": per_seed}
+            if combo_key in _done_results:
+                all_results = [r for r in all_results
+                               if not (r.get("summary", {}).get("optimizer") == opt_name
+                                       and r.get("summary", {}).get("rho") == rho)]
+            all_results.append(entry)
+            _done_results[combo_key] = entry
             # Write after every (opt, rho) group so results survive preemption.
             save_results(out_path, all_results)
 

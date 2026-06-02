@@ -1,4 +1,3 @@
-import math
 import copy
 import torch
 import torch.nn as nn
@@ -32,10 +31,10 @@ def _get_mlp_linears(encoder_block: nn.Module) -> tuple[nn.Linear, nn.Linear] | 
 
     torchvision ViT MLP structure (EncoderBlock.mlp):
         Sequential(
-            Linear(hidden, 4*hidden),   [index 0]
+            Linear(hidden, 4*hidden),    [index 0]
             GELU,                        [index 1]
             Dropout,                     [index 2]
-            Linear(4*hidden, hidden),   [index 3]
+            Linear(4*hidden, hidden),    [index 3]
             Dropout,                     [index 4]
         )
     Returns (linear1, linear2) or None if the structure is not recognised.
@@ -49,20 +48,8 @@ def _get_mlp_linears(encoder_block: nn.Module) -> tuple[nn.Linear, nn.Linear] | 
     return linears[0], linears[1]
 
 
-def apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
-    """Apply an approximate scale reparametrization to each ViT MLP block.
-
-    Scales the first Linear layer (weight + bias) by alpha and compensates the
-    second Linear layer's input weights by 1/alpha. This is **exact** only for
-    ReLU-like activations. For GELU the transform is approximate; the deviation
-    grows with |alpha - 1|.
-
-    The transform is applied **in-place**.
-
-    Args:
-        model: A ViT-B/32 returned by get_vit_b_32().
-        alpha: Scale factor. alpha=1.0 is a no-op.
-    """
+def _apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
+    """Internal: scale linear1 x $\alpha$ and linear2 x $(1/\alpha)$ in every ViT MLP block."""
     if alpha == 1.0:
         return
 
@@ -80,14 +67,85 @@ def apply_mlp_reparam(model: nn.Module, alpha: float) -> None:
             linear2.weight.mul_(1.0 / alpha)
 
 
-def measure_reparam_deviation(model: nn.Module, x: torch.Tensor, alpha: float) -> float:
-    """Return the max absolute difference after applying mlp_reparam.
+class _TaylorGELU(nn.Module):
+    """First-order Taylor approximation of GELU around x=0: f(x) = 0.5 * x.
 
-    Useful for characterising how approximate the GELU reparametrization is.
+    GELU'(0) = Phi(0) = 0.5, so the linearisation is f(x) ≈ 0.5x.
+    This IS positively homogeneous: f(alpha*x) = alpha*f(x), which makes the
+    linear1 x alpha / linear2 x (1/alpha) weight scaling exactly function-
+    preserving under this activation.
     """
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return 0.5 * x
+
+
+def _replace_gelu_with_taylor(model: nn.Module) -> None:
+    """Replace every GELU in the encoder MLP blocks with _TaylorGELU in-place."""
+    for block in model.encoder.layers.children():
+        mlp = getattr(block, "mlp", None)
+        if mlp is None:
+            continue
+        for i, child in enumerate(mlp):
+            if isinstance(child, nn.GELU):
+                mlp[i] = _TaylorGELU()
+
+
+def apply_mlp_reparam_taylor(model: nn.Module, alpha: float) -> float:
+    r"""Apply function-preserving MLP reparametrisation via Taylor-linearised GELU.
+
+    Two things happen in-place:
+
+    1. Every GELU activation in the encoder MLP blocks is replaced by its
+       first-order Taylor approximation around x=0, i.e. f(x) = 0.5x.
+       This activation IS positively homogeneous (f(αx) = αf(x)), so the
+       weight scaling below becomes exactly function-preserving.
+
+    2. For each MLP block: linear1 weights/bias are scaled by α and linear2
+       weights are scaled by 1/α, leaving the block's output unchanged.
+
+    The returned bound quantifies the per-activation error introduced by
+    replacing GELU with its linear approximation (independent of α):
+
+    .. math::
+        \epsilon(x) = |\text{GELU}(x) - 0.5x|
+                    \approx \tfrac{1.702}{4} x^2  \quad \text{(quadratic residual)}
+
+    The returned scalar is evaluated at unit activation scale (|x|=1):
+    0.4255 * |alpha - 1| is zero when alpha=1 (no-op) and grows linearly.
+
+    Args:
+        model: A ViT-B/32 returned by get_vit_b_32().
+        alpha: Scale factor. alpha=1.0 is a no-op (returns 0.0).
+
+    Returns:
+        analytic_bound: GELU linearisation error at unit activation scale.
+    """
+    if alpha == 1.0:
+        return 0.0
+
+    _replace_gelu_with_taylor(model)
+    _apply_mlp_reparam(model, alpha)
+
+    # Coefficient of the quadratic GELU residual: 1.702 / 4 ≈ 0.4255
+    _GELU_QUADRATIC_COEFF = 1.702 / 4.0
+    return _GELU_QUADRATIC_COEFF * abs(alpha - 1.0)
+
+
+def measure_reparam_deviation(model: nn.Module, x: torch.Tensor, alpha: float) -> float:
+    """Return the max absolute output difference between the original GELU model
+    and the TaylorGELU + weight-scaled reparametrised model.
+
+    Useful for characterising how much the GELU→TaylorGELU substitution (plus
+    weight scaling) shifts the model output as alpha moves away from 1.
+    Returns 0.0 when alpha=1.0 (no reparametrisation applied).
+    """
+    if alpha == 1.0:
+        return 0.0
     model_orig = copy.deepcopy(model)
     model_reparam = copy.deepcopy(model)
-    apply_mlp_reparam(model_reparam, alpha)
+    _replace_gelu_with_taylor(model_reparam)
+    _apply_mlp_reparam(model_reparam, alpha)
     model_orig.eval()
     model_reparam.eval()
     with torch.no_grad():

@@ -3,13 +3,18 @@ from torch.optim import Optimizer
 
 
 class SAM(Optimizer):
-    """Sharpness-Aware Minimization (Foret et al., 2021).
+    r"""Sharpness-Aware Minimization (Foret et al., 2021).
 
     Wraps a base SGD optimizer. Exposes a two-step API:
         first_step()  — perturb parameters to the local maximum of the loss
         second_step() — restore parameters and apply the base optimizer update
+    
+    .. math::
+        \delta^*_\text{SAM} = \arg\max_{\|\delta\|_2 \leq \rho} L(\theta + \delta)
+        
+        \theta \leftarrow \theta - \eta \nabla L(\theta + \delta^*_\text{SAM})
 
-    Usage::
+    .. code-block:: python
         optimizer = SAM(model.parameters(), base_optimizer=torch.optim.SGD,
                         rho=0.05, lr=0.1, momentum=0.9, weight_decay=5e-4)
         # inner loop

@@ -3,7 +3,7 @@ name = "sam-opt-research"
 version = "0.1.0"
 description = "Benchmarking SAM, ASAM, and M-SAM optimizer variants"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13, <3.14"
 dependencies = [
     "torch>=2.2.0",
     "torchvision>=0.17.0",
@@ -16,17 +16,49 @@ dependencies = [
     "vastai>=1.0.12",
     "plotly>=5.0.0",
     "kaleido>=0.2.1",
+    "fvcore>=0.1.5.post20221221",
+    # pytorch-triton is the nightly index's name for triton; it installs itself
+    # as 'triton' at runtime. Listed explicitly so uv can resolve it from the
+    # nightly index instead of chasing torch's git-hash triton pin.
+    "pytorch-triton; sys_platform == 'linux'",
+    "scipy>=1.17.1",
+    "nbformat>=5.10.4",
+    "ipywidgets>=8.1.8",
+    "anywidget>=0.11.0",
+    "hessian-eigenthings>=1.0.0a5",
+]
+
+[tool.uv]
+# torch nightly pins triton to a git-hash version that doesn't exist on PyPI.
+# We satisfy the triton requirement via pytorch-triton (same package, different
+# PyPI name) sourced from the nightly index, so suppress the transitive constraint.
+override-dependencies = [
+    "triton; sys_platform == 'win32'",
 ]
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
 ]
 torchvision = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
+]
+pytorch-triton = [
+    { index = "pytorch-cu128-nightly", marker = "sys_platform == 'linux'" },
 ]
 
 [[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-cu128-nightly"
+url = "https://download.pytorch.org/whl/nightly/cu128"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["slow: marks tests as slow (large model download/inference, deselect with -m 'not slow')"]

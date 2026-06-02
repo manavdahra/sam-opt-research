@@ -1,19 +1,14 @@
 import torch
 from torch.optim import Optimizer
 
-from .sam import SAM
-
-
 class MSAM(Optimizer):
-    """M-SAM: Riemannian SAM (Jacobsen & Arvanitidis, 2025).
+    r"""M-SAM: Riemannian SAM (Jacobsen & Arvanitidis, 2025).
 
     The perturbation is the SAM perturbation rescaled by the inverse of the
     Riemannian metric factor:
-
-        δ*_MSAM = δ*_SAM / sqrt(1 + ‖∇ℓ(θ)‖²₂)
-
-    This makes the perturbation invariant under reparametrization of the loss
-    landscape (metric-aware). Same two-step API as SAM.
+    .. math::
+        \delta^*_\text{MSAM} = \frac{\delta^*_\text{SAM}}{\sqrt{1 + \|\nabla \ell(\theta)\|_2^2}}
+    This makes the perturbation invariant under reparametrization of the loss landscape (metric-aware). Same two-step API as SAM.
     """
 
     def __init__(

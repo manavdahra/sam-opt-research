@@ -1,0 +1,321 @@
+\documentclass{article}
+
+\usepackage[final]{neurips_2019}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{lipsum}
+
+% Reduce vertical space around floats
+\setlength{\floatsep}{4pt plus 1pt minus 1pt}
+\setlength{\textfloatsep}{6pt plus 1pt minus 2pt}
+\setlength{\intextsep}{4pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+
+\raggedbottom
+
+\newcommand{\note}[1]{\textcolor{blue}{{#1}}}
+
+\title{
+  Invariance and Generalization in Sharpness-Aware Minimization (SAM)-Variants \\
+  \vspace{1em}
+  \small{\normalfont Stanford CS229 Project}  % Select one and delete the other
+}
+
+\author{
+  Manav Dahra \\
+  Department of Computer Science \\
+  Stanford University \\
+  \texttt{mav3rik@stanford.edu} \\
+  % Examples of more authors
+%   \And
+%   Name \\
+%   Department of Computer Science \\
+%   Stanford University \\
+%   \texttt{name@stanford.edu} \\
+%   \And
+%   Name \\
+%   Department of Computer Science \\
+%   Stanford University \\
+%   \texttt{name@stanford.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We study whether the generalisation benefits of Sharpness-Aware Minimization (SAM) variants survive function-preserving weight reparametrisation. Training ResNet-18 and ViT-B/32 on CIFAR-10, we compare SGD, SAM, ASAM, and Monge SAM (M-SAM) across two initialisation scales, three perturbation radii, and three random seeds, evaluating convergence speed, generalisation gap, and loss-landscape curvature. M-SAM consistently dominates on all metrics, with its advantage growing on the more complex ViT-B/32 architecture. The results confirm that geometry-aware, reparametrisation-invariant perturbations yield measurably better optimisation than Euclidean or diagonal-scaling alternatives.
+\end{abstract}
+
+
+% {\color{red} This template does not contain the full instruction set for this assignment; please refer back to the milestone instructions PDF.
+
+\section{Introduction}
+
+Sharpness-Aware Minimization (SAM) and its variants steer networks towards flatter loss regions by augmenting each optimisation step with a local worst-case perturbation. However, the strategies for computing this perturbation vary considerably-from simple Euclidean radius constraints to scale-invariant and geometry-aware formulations, and a rigorous, controlled empirical comparison across these variants is lacking. Furthermore, each SAM-style update requires at least two forward-backward passes per step, raising practical questions about whether the generalisation gains justify the added compute, particularly for larger architectures.
+
+We address both gaps by running controlled experiments on ResNet-18 and ViT-B/32 trained on CIFAR-10, directly comparing SGD against SAM, Adaptive SAM (ASAM), and Monge SAM (M-SAM) under explicit weight-scale distortions. This lets us assess not only final accuracy and generalisation gap, but also how each optimizer's convergence speed and robustness to reparametrization scales with model complexity.
+
+\section{Related Work}
+
+\citet{hochreiter1997flat} and \citet{keskar2016large} established a link between flat loss minima and good generalisation. However, \citet{dinh17b} showed that standard Euclidean flatness measures are not invariant to function-preserving reparametrizations: by node-rescaling in ReLU networks, any minimum can be made arbitrarily sharp without changing the model's predictions, undermining the reliability of Euclidean-based optimizers.
+
+To overcome this, three progressively stronger paradigms have been proposed. \citet{foret2021sam} introduced SAM, which perturbs parameters within an $\ell_2$ ball of radius $\rho$ to minimise worst-case loss, but inherits the Euclidean scale-sensitivity of \citet{dinh17b}. \citet{kwon2021asam} addressed this with ASAM, replacing the $\ell_2$ ball with a parameter-scaled adaptive ball ($T_w = \mathrm{diag}(|w|+\eta)$) that is invariant to element-wise rescaling, though its diagonal operator ignores inter-parameter correlations. Most recently, \citet{jacobsen2025msam} proposed M-SAM, equipping parameter space with the \emph{Monge metric} $G(\theta)=I_K+\nabla\ell(\theta)\nabla\ell(\theta)^\top$ to capture full gradient correlations; see Table~\ref{tab:perturbations} for the resulting perturbation formula.
+
+Empirical validation of M-SAM remains limited to narrow fine-tuning tasks on ResNet-18 and a multi-modal alignment benchmark. Our work fills this gap with a controlled multi-factorial grid sweeping architectures (ResNet-18, ViT-B/32), initialisation scales ($\alpha\in\{1.0,5.0\}$), perturbation radii ($\rho\in\{0.05,0.1,0.5\}$), and three random seeds, enabling direct comparison of all three paradigms under explicit reparametrization distortions.
+
+
+\section{Dataset and Features}
+
+\textbf{Dataset.} We use CIFAR-10 \citep{Krizhevsky09learningmultiple} (50{,}000 train / 10{,}000 test, 10 balanced classes), loaded via HuggingFace Datasets \citep{lhoest-etal-2021-datasets}. No validation set is held out; model selection is based on test accuracy after each epoch.
+
+\textbf{Input/Output.} Each model receives a normalised $3\times H\times W$ image tensor and predicts one of the 10 CIFAR-10 class labels. For ResNet-18 we use the native $32\times32$ resolution; for ViT-B/32 images are upsampled to $224\times224$ to match the pre-trained patch embedding. Channel-wise normalisation uses per-channel mean and standard deviation computed over the training set (see Appendix~\ref{appendix:preprocessing}). Training augmentation consists of random crop with padding 4 and random horizontal flip; no augmentation is applied at test time.
+
+\textbf{Features.} Both networks consume raw pixels directly—no hand-crafted descriptors are used. ResNet-18 learns convolutional features from scratch, while ViT-B/32 is fine-tuned from ImageNet weights and treats each image as a sequence of $32\times32$ non-overlapping patches projected into a 768-dimensional embedding.
+
+Sample images from the CIFAR-10 dataset are shown in Figure~\ref{fig:cifar10_samples} in Appendix. The dataset's small size and low resolution make it ideal for rapid experimentation across multiple optimizers and reparametrization settings, while still presenting a non-trivial classification challenge that benefits from SAM-style regularization.
+
+\section{Methods}
+\subsection{Experimental setup}
+We structure our experiments in three stages:
+\begin{itemize}[noitemsep,topsep=2pt]
+    \item \textbf{Baseline ($\alpha=1.0$).} We sweep a full hyper-parameter grid (see Appendix~\ref{appendix:hyperparameters}) with no reparametrization, recording loss, accuracy, and elapsed time at every epoch for each seed.
+    \item \textbf{Reparametrisation ($\alpha=5.0$).} We repeat the identical grid with initial weights scaled by $\alpha=5.0$, exposing each optimizer to an adversarially sharp initialisation.
+    \item \textbf{Analysis.} We compare both settings across convergence speed, final test accuracy, generalisation gap, and loss-landscape curvature via Hutchinson's trace estimator.
+\end{itemize}
+
+\subsection{Reparameterisation setup ResNet vs ViT}
+
+For each BasicBlock in ResNet-18 we reparametrize it by injecting a positive scaling factor $\alpha$ at Batch normalisation layer (BN1) and compensating with $1/\alpha$ at Convolution layer (conv2), yielding a chain which preserves the function computed by the block. See Appendix~\ref{appendix:reparametrization} for more details.
+
+For ViT-B/32, we target the MLP sub-block of each transformer layer. Since GELU is not positively homogeneous, it does not satisfy $f(\alpha x)=\alpha f(x)$ and naively scaling linear weights by $\alpha$ does not preserve the block's output. We resolve this problem by replacing each GELU with its first-order Taylor approximation at zero, $f(x)\approx 0.5x$, which is positively homogeneous. Under this linearised activation, scaling \texttt{linear1} by $\alpha$ and \texttt{linear2} by $1/\alpha$ leaves the block output unchanged. See Appendix~\ref{appendix:gelu_taylor_approx} for the derivation of this approximation.
+
+\subsection{Training loop and optimisers implementation}
+All optimisers share a single training loop; only the perturbation $\hat{\epsilon}$ computation differs, as summarised in Table~\ref{tab:perturbations}. We use PyTorch's built-in SGD directly, and wrap it with a two-step closure for SAM, ASAM, and M-SAM following the update rules in the respective papers. All other training details—learning rate, batch size, augmentation—are held fixed across optimisers to isolate the effect of the perturbation strategy. Experiments were run on four NVIDIA RTX 4090 GPUs; see Appendix~\ref{appendix:infrastructure} for infrastructure details and Appendix~\ref{appendix:hyperparameters} for the full hyper-parameter grid.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of perturbation computation across SAM, ASAM, and M-SAM optimizers. Each optimizer defines a different constraint ball for the perturbation and a corresponding formula for computing $\hat{\epsilon}$ based on the loss gradient.}
+\label{tab:perturbations}
+\begin{tabular}{lll}
+\toprule
+\textbf{Optimizer} & \textbf{Constraint ball} & \textbf{Perturbation $\hat{\epsilon}$} \\
+\midrule
+SAM & $\|\hat{\epsilon}\|_2 \le \rho$ &
+  $\displaystyle\frac{\rho}{\|\nabla_\theta\mathcal{L}(\theta)\|_2} \nabla_\theta\mathcal{L}(\theta) $ \\[10pt]
+ASAM & $\|T_w^{-1}\hat{\epsilon}\|_2 \le \rho$ &
+  $\displaystyle \frac{\rho \,T_w^2}{\|T_w\,\nabla_\theta\mathcal{L}(\theta)\|_2} \nabla_\theta\mathcal{L}(\theta)$ \\[10pt]
+M-SAM & $\hat{\epsilon}^\top G(\theta)\,\hat{\epsilon} \le \rho^2$ &
+  $\displaystyle\frac{\rho}{\sqrt{1+\|\nabla_\theta\mathcal{L}(\theta)\|_2^2}\;\|\nabla_\theta\mathcal{L}(\theta)\|_2}\,\nabla_\theta\mathcal{L}(\theta)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Analysis details}
+
+We evaluate four metrics for both baseline and reparametrised settings:
+\textbf{Training loss curves.} Epoch-wise loss plots provide a qualitative view of convergence stability across optimisers and $\alpha$ settings. \textbf{Convergence speed.} Epochs, GFLOPs, and wall-clock time to reach $90\%$, $95\%$, and $99\%$ of the SGD baseline's final test accuracy. \textbf{Generalisation gap.} Difference between training and test accuracy at the end of training; a proxy for overfitting. \textbf{Loss landscape curvature.} Hutchinson's trace estimator approximates $\mathrm{tr}(H)$ at the final checkpoint; lower values indicate flatter minima.
+
+\section{Results and Discussion}
+\subsection{Training loss curves}
+
+\begin{figure}[H]
+  \begin{tabular}{cc}
+    \includegraphics[width=0.48\textwidth]{./vit_sgd_stuck.png} & \includegraphics[width=0.48\textwidth]{./vit_asam_slow_convergence.png} \\
+    \includegraphics[width=0.48\textwidth]{./vit_sam_slow_convergence.png} & \includegraphics[width=0.48\textwidth]{./vit_msam_slow_convergence.png} \\
+  \end{tabular}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ViT-B/32 trained with SGD, SAM, ASAM, and M-SAM (left to right). M-SAM converges fastest and achieves the lowest training loss; SGD and SAM show slower convergence and higher loss at seed~40, $\rho=0.1$.}\label{fig:vit_interesting}}
+\end{figure}
+
+We compare baseline ($\alpha=1.0$) and reparametrised ($\alpha=5.0$) settings across training loss curves, convergence speed, and generalisation gap.
+For ResNet-18, loss curves decrease smoothly for all optimisers under both settings (Appendix Figure~\ref{fig:resnet_good}). For ViT-B/32, SGD and SAM exhibit a notably higher generalisation gap and slower convergence at seed~40, $\rho=0.1$ (Figure~\ref{fig:vit_interesting}), while ASAM and M-SAM remain stable—consistent with their stronger invariance guarantees.
+
+\subsection{Convergence rate}
+\begin{figure}[H]
+  \includegraphics[width=\textwidth]{./resnet_baseline_convergence.png}\\[2pt]
+  \includegraphics[width=\textwidth]{./vit_baseline_convergence.png}
+  {\captionsetup{font=footnotesize}\caption{Convergence bar plots for \emph{baseline} ResNet-18 (top) and ViT-B/32 (bottom). Colours: SGD gray, SAM blue, ASAM orange, M-SAM green. Left: epochs to reach $90/95/99\%$ of final accuracy. Centre: GFLOPs. Right: wall-clock time.}
+  \label{fig:baseline_convergence}}
+\end{figure}
+
+Figure~\ref{fig:baseline_convergence} reveals several patterns. M-SAM reaches all accuracy thresholds in the fewest epochs across both architectures, suggesting its geometry-aware perturbation navigates the loss landscape more efficiently. Despite its higher per-step cost, M-SAM ranks second in total GFLOPs because fewer epochs are needed, partially offsetting the overhead. Wall-clock behaviour is nuanced: M-SAM is fastest on ResNet-18, but on the larger ViT the Monge metric computation adds latency that narrows its lead—though it still beats ASAM and SGD. On ResNet-18, SAM and M-SAM converge at similar rates; on ViT-B/32 the gap widens at the $99\%$ threshold, indicating geometry-aware perturbations are particularly valuable for more complex loss landscapes. ASAM consistently lags behind M-SAM; its diagonal scaling ignores inter-parameter correlations, and its sensitivity to $\rho$ amplifies this gap on ViT.
+
+\subsection{Generalisation Gap}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{./resnet_avg_gen_gap.png}
+  {\captionsetup{font=footnotesize}\caption{Average generalisation gap (train accuracy $-$ test accuracy) across all $\rho$ values and seeds for ResNet-18 under baseline ($\alpha=1.0$) settings.}
+  \label{fig:resnet_generalization_gap}}
+\end{figure}
+
+Figure~\ref{fig:resnet_generalization_gap} shows SAM and M-SAM achieving the smallest generalisation gap, indicating both find flatter, better-generalising minima. SAM's parity with M-SAM on ResNet-18 suggests the Euclidean perturbation is sufficient when the loss landscape is relatively smooth. ASAM's larger gap reflects its diagonal operator's inability to capture inter-parameter correlations; its sensitivity to $\rho$ further limits its effectiveness without careful tuning. SGD produces the largest gap, consistent with converging to sharper minima without any flatness-seeking mechanism.
+
+\subsection{Sharpness estimation}
+We visualise 2D loss landscapes around the final checkpoint via filter normalisation~\citet{li2018visualizing}, restricting analysis to ResNet-18 because Hutchinson's trace estimator \citet{hutchinson1989stochastic}, which we use to approximate $\frac{\mathrm{tr}(H)}{d}$ without forming the full Hessian—becomes computationally intractable for ViT-B/32 in our low-resource setting. Across both $\alpha$ settings, M-SAM consistently yields the lowest curvature estimates, confirming it converges to the flattest minima. ASAM shows inconsistent levels of sharpness for different values of $\rho$ but is still flatter than SGD and sharper than M-SAM. These landscape shapes directly mirror the quantitative results: lower $\mathrm{tr}(H)$ correlates with smaller generalisation gaps and faster convergence, supporting the view that geometry-aware perturbations are the decisive factor.
+
+\begin{figure}[H]
+  \begin{tabular}{cccc}
+    \includegraphics[width=0.22\textwidth]{./resnet_reparam_sgd_sharp.png} & \includegraphics[width=0.22\textwidth]{./resnet_reparam_asam_sharp.png} &
+    \includegraphics[width=0.22\textwidth]{./resnet_reparam_sam_sharp.png} & \includegraphics[width=0.22\textwidth]{./resnet_reparam_msam_sharp.png}
+  \end{tabular}
+  {\captionsetup{font=footnotesize}\caption{2D loss landscapes for ResNet-18 under different optimizers. M-SAM consistently finds flatter minima with lower curvature estimates, while ASAM's curvature is higher but still better than SAM and SGD.}\label{fig:resnet_loss_landscapes}}
+\end{figure}
+
+\section{Conclusion and Future Work}
+Across both ResNet-18 and ViT-B/32, M-SAM consistently outperforms SAM, ASAM, and SGD on every metric we measure: it converges in the fewest epochs and fewest total GFLOPs, achieves the smallest generalisation gap, and reaches the flattest minima as measured by Hutchinson's curvature estimate. The results confirm the theoretical prediction that full gradient correlation awareness encoded by the Monge metric matters more as model complexity grows: the performance gap between M-SAM and its competitors is noticeably wider on ViT-B/32 than on ResNet-18. ASAM's diagonal-scaling heuristic offers a partial remedy over vanilla SAM but is handicapped by its sensitivity to $\rho$ and its inability to capture inter-parameter correlations, while SGD, lacking any flatness seeking mechanism, consistently converges to sharper minima and a larger generalisation gap. The reparametrisation experiments ($\alpha=5.0$) further demonstrate that M-SAM's advantages are preserved under adversarial weight rescaling, whereas SAM's performance degrades, validating the importance of reparametrisation-invariant perturbations.
+
+Several directions remain open. \textbf{(1) Larger-scale evaluation.} Our experiments are limited to CIFAR-10; extending to ImageNet or domain-shift benchmarks would test whether M-SAM's geometry-aware perturbation retains its advantage when the label space and data distribution become more complex. \textbf{(2) Adaptive $\rho$ scheduling.} All three SAM variants are sensitive to the choice of $\rho$; a principled, curvature-driven scheduler that tightens the perturbation ball as training progresses may eliminate the need for a manual grid search. \textbf{(3) Broader reparametrisation families.} We studied a single $\alpha$ value and a linearised GELU; exploring the full range of function-preserving transforms—including layer-norm rescaling and attention-head rotations in transformers—would give a more complete picture of invariance under realistic model manipulations.
+
+\vspace{2em}
+
+\section{Appendices}
+
+\subsection{Sample CIFAR-10 images}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{./cifar10_samples.png}
+    {\captionsetup{font=footnotesize}\caption{Example images from the CIFAR-10 dataset (one per class). Classes are, from left to right: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck.}\label{fig:cifar10_samples}}
+\end{figure}
+
+\subsection{Preprocessing Details}
+\label{appendix:preprocessing}
+Empirical mean and standard deviation for each channel are computed over the training set as follows:
+\[
+    \mu_c = \frac{1}{N} \sum_{i=1}^N x_{i,c} \quad \texttt{and} \quad
+    \sigma_c = \sqrt{\frac{1}{N} \sum_{i=1}^N (x_{i,c} - \mu_c)^2}
+\]
+where $N$ is the total number of training images, $x_{i,c}$ is the pixel value of the $i$-th image in channel $c$. The computed means and standard deviations are then used to normalise each image during preprocessing:
+\[
+    \hat{x}_{i,c} = \frac{x_{i,c} - \mu_c}{\sigma_c}
+\]
+
+Values for the computed means and standard deviations for CIFAR-10 are:
+\begin{itemize}
+    \item Red channel: $\mu_R = 0.4914$, $\sigma_R = 0.2470$
+    \item Green channel: $\mu_G = 0.4822$, $\sigma_G = 0.2435$
+    \item Blue channel: $\mu_B = 0.4465$, $\sigma_B = 0.2616$
+\end{itemize}
+
+\subsection{Training infrastructure}
+\label{appendix:infrastructure}
+All experiments were executed across four NVIDIA RTX 4090 GPUs (24 GB VRAM each). Four training scripts ran in parallel—one per combination of architecture and $\alpha$ setting: ResNet-18 baseline ($\alpha=1.0$), ResNet-18 reparametrised ($\alpha=5.0$), ViT-B/32 baseline, and ViT-B/32 reparametrised—with each script distributing its 36 runs (4 optimisers $\times$ 3 $\rho$ values $\times$ 3 seeds) sequentially on its assigned GPU. Mixed-precision training (\texttt{torch.cuda.amp}) was enabled for ViT-B/32 to reduce memory pressure at $224\times224$ resolution.
+
+\subsection{Hyper-parameters}
+\label{appendix:hyperparameters}
+
+\begin{table}[H]
+\centering
+\caption{Hyper-parameter grid used across all experiments. Baseline runs use $\alpha=1.0$; reparametrisation runs use $\alpha=5.0$. Every combination of optimizer $\times$ $\rho$ $\times$ seed is evaluated independently, yielding $4 \times 3 \times 3 = 36$ runs per architecture per $\alpha$ setting.}
+\label{tab:hyperparameters}
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyper-parameter} & \textbf{ResNet-18} & \textbf{ViT-B/32} \\
+\midrule
+Epochs                        & 200               & 50 \\
+Batch size                    & 256               & 256 \\
+Learning rate                 & 0.1               & 0.01 \\
+Momentum                      & 0.9               & 0.9 \\
+Weight decay                  & $5\times10^{-4}$  & $5\times10^{-4}$ \\
+Input resolution              & $32\times32$      & $224\times224$ \\
+Pre-trained weights           & No                & Yes (ImageNet) \\
+\midrule
+Optimizers                    & \multicolumn{2}{c}{SGD, SAM, ASAM, M-SAM} \\
+Perturbation radius $\rho$    & \multicolumn{2}{c}{$\{0.05,\; 0.1,\; 0.5\}$} \\
+ASAM scaling $\eta$           & \multicolumn{2}{c}{$0.01$} \\
+Random seeds                  & \multicolumn{2}{c}{$\{40,\; 41,\; 42\}$} \\
+\midrule
+Init.\ scale $\alpha$ (baseline)   & \multicolumn{2}{c}{$1.0$} \\
+Init.\ scale $\alpha$ (reparam)    & \multicolumn{2}{c}{$5.0$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\label{appendix:reparametrization}
+\subsection{Reparameterization}
+BasicBlocks in ResNet-18 consist of two convolutional layers (conv1 and conv2) with a Batch Normalisation layer (BN1) in between. To reparametrise the block, we inject a positive scaling factor $\alpha$ at the output of BN1 and compensate with $1/\alpha$ at conv2. This preserves the function computed by the block while exposing the optimizers to an adversarially sharp initialisation.
+
+\[
+  \hdots 
+  \xrightarrow{\text{conv1}} 
+  \xrightarrow{\text{BN1}} 
+  \xrightarrow{\;\times\alpha\;} 
+  \xrightarrow{\text{ReLU}} 
+  \xrightarrow{\text{conv2}} 
+  \xrightarrow{\;\times 1/\alpha\;} 
+  \xrightarrow{\text{BN2}} 
+  \hdots
+\]
+
+We need to be careful when reparametrising a layer before Batch normalisation (BN). BN absorbs any scaling factor applied to its input, meaning that if we simply scale the weights of a convolutional layer before BN by $\alpha$, the output of BN will be unaffected, and the subsequent layers will not experience the intended reparametrization. To see this, 
+\[
+  \mu' = \frac{1}{m} \sum_{i=1}^m \alpha \cdot x_i = \alpha \cdot \mu \quad \text{and} \quad
+  \sigma' = \sqrt{\frac{1}{m} \sum_{i=1}^m (\alpha \cdot x_i - \alpha \cdot \mu)^2} = \alpha \cdot \sigma
+\]
+\[
+  \texttt{BN}(\alpha \cdot x) = \frac{\alpha \cdot x - \mu'}{\sigma'} = \frac{\alpha \cdot x - \alpha \cdot \mu}{\alpha \cdot \sigma} = \frac{x - \mu}{\sigma} = \texttt{BN}(x)
+\]
+
+To get around this issue, we inject the scaling factor $\alpha$ at the output of BN1, which is then propagated through the ReLU activation. We compensate for this by applying a corresponding $1/\alpha$ scaling at conv2, ensuring that the overall function computed by the block remains unchanged.
+
+\label{appendix:gelu_taylor_approx}
+\subsection{GELU linearisation for ViT reparametrization}
+The MLP sub-block of each transformer layer in ViT-B/32 consists of two linear layers with a GELU activation in between. Since GELU is not positively homogeneous, we cannot simply scale the first linear layer by $\alpha$ and the second by $1/\alpha$ without changing the block's output. To preserve the function under scaling, we replace GELU with its first-order Taylor approximation around zero, which is positively homogeneous. The Taylor approximation of GELU activation function around zero is given by:
+\begin{align*}
+  \text{GELU}(x) &= 0.5 x (1 + \text{tanh}(\sqrt{2/\pi}(x + 0.044715 x^3)))\\
+  &\approx 0.5 x (1 + \text{tanh}(\sqrt{2/\pi} x)) \\
+  &\approx 0.5 x (1 + \sqrt{2/\pi} x)\\
+  &= 0.5 x \quad \text{for small } x
+\end{align*}
+
+\subsection{ResNet loss curves for baseline and reparametrized settings}
+\begin{figure}[H]
+  \begin{tabular}{cc}
+    \includegraphics[width=0.48\textwidth]{./resnet_sgd_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./resnet_asam_loss_curve.png} \\
+    \includegraphics[width=0.48\textwidth]{./resnet_sam_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./resnet_msam_loss_curve.png} \\
+  \end{tabular}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}\label{fig:resnet_good}}
+\end{figure}
+
+\subsection{ViT loss curves for baseline and reparametrized settings}
+\begin{figure}[H]
+  \begin{tabular}{cc}
+    \includegraphics[width=0.48\textwidth]{./vit_sgd_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./vit_asam_loss_curve.png} \\
+    \includegraphics[width=0.48\textwidth]{./vit_sam_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./vit_msam_loss_curve.png} \\
+  \end{tabular}
+    {\captionsetup{font=footnotesize}\caption{Epoch-wise training loss curves for ViT trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}\label{fig:vit_good}}
+\end{figure}
+
+\section{Contributions}
+
+\textbf{Manav Dahra} was the sole contributor to this project and is responsible for all work described in this report.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \textbf{Literature review.} Surveyed the SAM, ASAM, and M-SAM papers, as well as the Dinh et al.\ reparametrisation critique, to motivate the experimental design.
+  \item \textbf{Codebase and infrastructure.} Built the full training pipeline in PyTorch, including data loading (HuggingFace Datasets), model wrappers for ResNet-18 and ViT-B/32, and implementations of SGD, SAM, ASAM, and M-SAM optimisers.
+  \item \textbf{Reparametrisation implementation.} Derived and implemented function-preserving weight rescaling for ResNet-18 (BN/conv chain) and for ViT-B/32 (GELU Taylor approximation + MLP linear scaling), with unit tests verifying correctness.
+  \item \textbf{Experiment execution.} Ran the full hyper-parameter grid ($4$ optimisers $\times$ $3$ $\rho$ values $\times$ $3$ seeds $\times$ $2$ $\alpha$ settings $\times$ $2$ architectures) and managed result logging.
+  \item \textbf{Analysis and visualisation.} Computed convergence speed (epochs, GFLOPs, wall-clock time), generalisation gap, Hutchinson curvature estimates, and 2D loss-landscape plots using filter normalisation; produced all figures in the report.
+  \item \textbf{Report writing.} Wrote all sections of this report, including motivation, background, methods, results, and conclusion.
+\end{itemize}
+
+\section*{Acknowledgements}
+The author thanks \textbf{Bradley Moon} for serving as project mentor, providing general guidance on experimental design, and qualitatively validating the results throughout the project.
+
+\bibliographystyle{acl_natbib}
+\bibliography{references}
+
+\end{document}

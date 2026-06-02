@@ -3,20 +3,21 @@
 Loads a trained model checkpoint (or trains a fresh one if no checkpoint is
 provided) and computes:
   1. Hutchinson trace estimate (tr(H)/d) — sharpness proxy.
-  2. 1D loss landscape along a random filter-normalized direction.
+  2. 2D loss landscape along a random filter-normalized direction.
 
 Single-checkpoint mode:
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --checkpoint results/results/baseline/resnet18/checkpoints/sam_rho0.05_seed42.pt
+        --checkpoint results/runs/<run-id>/checkpoint.pt
 
 Batch mode (all checkpoints in a directory):
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --ckpt-dir results/results/baseline/resnet18/checkpoints \
-        --out-dir  results/results/flatness/resnet18
+        --ckpt-dir results/experiments/baseline/resnet18/checkpoints \
+        --out-dir  results/experiments/flatness/resnet18
 """
 from __future__ import annotations
 
 import argparse
+import gc
 import os
 import re
 import sys
@@ -39,18 +40,20 @@ from experiments.utils import get_device, set_seed, build_model, save_results
 
 # Filename pattern: <opt>_rho<rho>_seed<seed>.pt
 _CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
+# Reparam filename pattern: <opt>_rho<rho>_alpha<alpha>_seed<seed>.pt
+_REPARAM_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_alpha(?P<alpha>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
 
 OPT_STYLE: dict[str, dict] = {
-    "sam":  {"color": "#2196F3", "linestyle": "-"},
-    "msam": {"color": "#4CAF50", "linestyle": "-"},
-    "asam": {"color": "#FF9800", "linestyle": "-"},
     "sgd":  {"color": "#9E9E9E", "linestyle": "--"},
+    "sam":  {"color": "#2196F3", "linestyle": "-"},
+    "asam": {"color": "#FF9800", "linestyle": "-"},
+    "msam": {"color": "#4CAF50", "linestyle": "-"},
 }
 
 
 def _load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
     model = build_model(cfg, device)
-    state = torch.load(path, map_location=device)
+    state = torch.load(path, map_location=device, weights_only=True)
     model.load_state_dict(state)
     model.eval()
     return model
@@ -65,14 +68,42 @@ def _analyse_one(
     n_samples: int = 20,
     max_batch: int = 64,
 ) -> tuple[float, list, list, list]:
-    """Returns (trace, alphas_list, betas_list, losses_2d_list)."""
+    """Returns (trace, alphas_list, betas_list, losses_2d_list).
+
+    Hutchinson trace is measured on test data; landscape on test data.
+    """
     trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=1.0)
+    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=2.5)
     return trace, alphas.tolist(), betas.tolist(), losses.tolist()
 
 
 # ── single-checkpoint mode ───────────────────────────────────────────────────
+
+def main(config_path: str, checkpoint: str | None, seed: int, experiment: str = "baseline") -> None:
+    """Entry point for main.py CLI dispatch.
+
+    If *checkpoint* is provided, runs single-checkpoint mode.
+    Otherwise runs batch mode over the checkpoints saved by run_baseline.py
+    or run_reparam.py depending on *experiment* ("baseline" or "reparam").
+    """
+    with open(config_path) as _f:
+        _cfg = yaml.safe_load(_f)
+    out_dir = os.path.join(
+        _cfg.get("experiments_dir", "./results/experiments"),
+        "flatness",
+        experiment,
+        _cfg["model"],
+    )
+    if checkpoint is not None:
+        main_single(config_path, checkpoint, seed, out_dir)
+    else:
+        ckpt_dir = os.path.join(
+            _cfg.get("experiments_dir", "./results/experiments"),
+            experiment, _cfg["model"], "checkpoints",
+        )
+        main_batch(config_path, ckpt_dir, out_dir, seed, experiment=experiment)
+
 
 def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_samples: int = 20, max_batch: int = 64) -> None:
     with open(config_path) as f:
@@ -85,6 +116,7 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
         resize=cfg.get("resize"),
+        max_samples=cfg.get("max_samples"),
     )
     loss_fn = nn.CrossEntropyLoss()
 
@@ -93,75 +125,108 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     model = _load_checkpoint(checkpoint, cfg, device)
     trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
 
+    plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(plots_dir, exist_ok=True)
     save_results(os.path.join(out_dir, "sharpness.json"), {name: trace})
     save_results(os.path.join(out_dir, "landscape.json"), {name: (alphas, betas, losses)})
     plot_loss_landscape_2d(
         np.array(alphas), np.array(betas), np.array(losses),
         title=f"2D Loss Landscape — {name}",
-        save_path=os.path.join(out_dir, "landscape.html"),
+        save_path=os.path.join(plots_dir, "landscape.html"),
     )
-    print(f"Outputs saved to {out_dir}/")
+    print(f"Data saved to {out_dir}/  |  Plots saved to {plots_dir}/")
 
 
 # ── batch mode ───────────────────────────────────────────────────────────────
 
-def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_samples: int = 20, max_batch: int = 64) -> None:
+def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_samples: int = 20, max_batch: int = 64, experiment: str = "baseline") -> None:
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
     device = get_device()
-    set_seed(seed)
-    _, test_loader = get_cifar10_loaders(
-        data_dir=cfg["data_dir"],
-        batch_size=cfg["batch_size"],
-        num_workers=cfg.get("num_workers", 4),
-        resize=cfg.get("resize"),
-    )
     loss_fn = nn.CrossEntropyLoss()
     os.makedirs(out_dir, exist_ok=True)
 
     # Discover and sort checkpoints
     ckpt_files = sorted(f for f in os.listdir(ckpt_dir) if f.endswith(".pt"))
+    is_reparam = experiment == "reparam"
     entries: list[dict] = []
     for fname in ckpt_files:
-        m = _CKPT_RE.match(fname)
+        m = (_REPARAM_CKPT_RE if is_reparam else _CKPT_RE).match(fname)
         if not m:
             print(f"Skipping unrecognised file: {fname}")
             continue
-        entries.append({
+        entry: dict = {
             "fname": fname,
             "path": os.path.join(ckpt_dir, fname),
             "opt": m.group("opt"),
             "rho": float(m.group("rho")),
             "seed": int(m.group("seed")),
-        })
+        }
+        if is_reparam:
+            entry["alpha"] = float(m.group("alpha"))
+        entries.append(entry)
 
-    sharpness_all: dict[str, float] = {}
-    landscape_all: dict[str, tuple] = {}
+    # Accumulate per-seed results grouped by config key (opt/rho[/alpha])
+    # so we can average across seeds rather than silently overwriting them.
+    from collections import defaultdict
+    traces_by_key:    dict[str, list[float]]       = defaultdict(list)
+    landscapes_by_key: dict[str, list[np.ndarray]] = defaultdict(list)
+    alphas_ref:  dict[str, list] = {}
+    betas_ref:   dict[str, list] = {}
 
     for i, e in enumerate(entries, 1):
         key = f"{e['opt']}_rho{e['rho']}"
+        if "alpha" in e:
+            key += f"_alpha{e['alpha']}"
+        set_seed(e["seed"])
+        _, test_loader = get_cifar10_loaders(
+            data_dir=cfg["data_dir"],
+            batch_size=cfg["batch_size"],
+            num_workers=cfg.get("num_workers", 4),
+            resize=cfg.get("resize"),
+            max_samples=cfg.get("max_samples"),
+        )
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
         trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
-        sharpness_all[key] = trace
-        landscape_all[key] = (alphas, betas, losses)
-        # Incremental save after each checkpoint
-        save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
+        traces_by_key[key].append(trace)
+        landscapes_by_key[key].append(np.array(losses))
+        alphas_ref[key] = alphas
+        betas_ref[key]  = betas
+        del model, test_loader
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
+        # Incremental save of per-seed-averaged sharpness seen so far
+        sharpness_partial = {k: float(np.mean(v)) for k, v in traces_by_key.items()}
+        save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_partial)
+
+    # Average across seeds
+    sharpness_all: dict[str, float] = {k: float(np.mean(v)) for k, v in traces_by_key.items()}
+    landscape_all: dict[str, tuple] = {
+        k: (alphas_ref[k], betas_ref[k], np.mean(landscapes_by_key[k], axis=0).tolist())
+        for k in traces_by_key
+    }
+
+    save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
     save_results(os.path.join(out_dir, "landscape_all.json"), landscape_all)
 
+    plots_dir = os.path.join(out_dir, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
+
     # ── Plot 1: sharpness bar chart ──────────────────────────────────────────
-    _plot_sharpness_bars(sharpness_all, out_dir)
+    _plot_sharpness_bars(sharpness_all, plots_dir)
 
     # ── Plot 2: landscape comparison (one line per checkpoint) ───────────────
-    _plot_landscape_comparison(landscape_all, out_dir)
+    _plot_landscape_comparison(landscape_all, plots_dir)
 
     # ── Plot 3: landscape comparison — best ρ per optimizer ──────────────────
-    _plot_landscape_best(landscape_all, out_dir)
+    _plot_landscape_best(landscape_all, plots_dir)
 
-    print(f"\nAll flatness outputs saved to {out_dir}/")
+    print(f"\nData saved to {out_dir}/  |  Plots saved to {plots_dir}/")
 
 
 def _opt_from_key(key: str) -> str:
@@ -199,7 +264,8 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
     by_opt: dict[str, list] = defaultdict(list)
     for key, trace in sharpness.items():
         opt = _opt_from_key(key)
-        rho = float(key.split("rho")[1])
+        rho_str = key.split("rho")[1].split("_")[0]
+        rho = float(rho_str)
         by_opt[opt].append((rho, trace))
 
     fig = go.Figure()
@@ -249,7 +315,7 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
     scene_updates = {}
     for idx, key in enumerate(keys):
         alphas, betas, losses = landscape[key]
-        Z = np.clip(np.array(losses), 0, Z_CLIP)
+        Z = np.clip(np.array(losses), 0, Z_CLIP).T
         row, col = idx // ncols + 1, idx % ncols + 1
         fig.add_trace(go.Surface(
             z=Z.tolist(),
@@ -277,13 +343,13 @@ def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> Non
 
 
 def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
-    """2×2 contour grid — best ρ per optimizer (lowest centre loss)."""
+    r"""2 x 2 contour grid — best rho per optimizer (lowest centre loss)."""
     from collections import defaultdict
     Z_CLIP = 5.0
     by_opt: dict[str, list] = defaultdict(list)
     for key, (alphas, betas, losses) in landscape.items():
         opt = _opt_from_key(key)
-        rho = float(key.split("rho")[1])
+        rho = float(key.split("rho")[1].split("_")[0])
         losses_arr = np.array(losses)
         mid = losses_arr.shape[0] // 2
         centre_loss = losses_arr[mid, mid]
@@ -355,23 +421,33 @@ if __name__ == "__main__":
                         help="Rademacher samples for Hutchinson trace (default: 20)")
     parser.add_argument("--max-batch", type=int, default=64,
                         help="Images per Hessian estimate (default: 64)")
+    parser.add_argument("--experiment", default=None, choices=["baseline", "reparam"],
+                        help="Checkpoint naming scheme: 'baseline' or 'reparam' (auto-detected from --ckpt-dir path if omitted)")
     args = parser.parse_args()
 
     if args.ckpt_dir:
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)
         _out = args.out_dir or os.path.join(
-            _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
+            _cfg.get("experiments_dir",
+                     _cfg.get("flatness_results_dir",
+                              _cfg.get("results_dir", "./results/experiments").replace("baseline", "flatness"))),
+            "flatness" if "experiments_dir" in _cfg else "",
             _cfg["model"],
-        )
-        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch)
+        ).replace("//", "/")
+        # Auto-detect experiment type from path when not explicitly provided
+        _experiment = args.experiment or ("reparam" if "reparam" in args.ckpt_dir else "baseline")
+        main_batch(args.config, args.ckpt_dir, _out, args.seed, args.n_samples, args.max_batch, experiment=_experiment)
     elif args.checkpoint:
         with open(args.config) as _f:
             _cfg = yaml.safe_load(_f)
         _out = args.out_dir or os.path.join(
-            _cfg.get("results_dir", "./results/baseline").replace("baseline", "flatness"),
+            _cfg.get("experiments_dir",
+                     _cfg.get("flatness_results_dir",
+                              _cfg.get("results_dir", "./results/experiments").replace("baseline", "flatness"))),
+            "flatness" if "experiments_dir" in _cfg else "",
             _cfg["model"],
-        )
+        ).replace("//", "/")
         main_single(args.config, args.checkpoint, args.seed, _out, args.n_samples, args.max_batch)
     else:
         parser.error("Provide either --checkpoint or --ckpt-dir.")

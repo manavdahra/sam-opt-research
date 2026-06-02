@@ -1,3 +1,5 @@
+.DS_Store
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -11,3 +13,16 @@ wheels/
 
 # Dataset
 /data/
+
+# Results
+/results/
+/results_per_instance/
+
+# Coverage reports
+/htmlcov
+.coverage
+.coverage.*
+
+# Pytest cache
+.pytest_cache/
+

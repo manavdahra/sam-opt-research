@@ -1,0 +1,53 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Dinh et~al.(2017)Dinh, Pascanu, Bengio, and Bengio}]{dinh17b}
+Laurent Dinh, Razvan Pascanu, Samy Bengio, and Yoshua Bengio. 2017.
+\newblock \href {https://proceedings.mlr.press/v70/dinh17b.html} {Sharp minima can generalize for deep nets}.
+\newblock In \emph{Proceedings of the 34th International Conference on Machine Learning}, volume~70 of \emph{Proceedings of Machine Learning Research}, pages 1019--1028. PMLR.
+
+\bibitem[{Foret et~al.(2021)Foret, Kleiner, Mobahi, and Neyshabur}]{foret2021sam}
+Pierre Foret, Ariel Kleiner, Hossein Mobahi, and Behnam Neyshabur. 2021.
+\newblock \href {https://arxiv.org/abs/2010.01412} {Sharpness-aware minimization for efficiently improving generalization}.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}.
+
+\bibitem[{Hochreiter and Schmidhuber(1997)}]{hochreiter1997flat}
+Sepp Hochreiter and J{\"u}rgen Schmidhuber. 1997.
+\newblock Flat minima.
+\newblock \emph{Neural computation}, 9(1):1--42.
+
+\bibitem[{Hutchinson(1989)}]{hutchinson1989stochastic}
+M.~F. Hutchinson. 1989.
+\newblock A stochastic estimator of the trace of the influence matrix for {Laplacian} smoothing splines.
+\newblock \emph{Communications in Statistics --- Simulation and Computation}, 18(3):1059--1076.
+
+\bibitem[{Jacobsen and Arvanitidis(2025)}]{jacobsen2025msam}
+Albert~Kj{\o}ller Jacobsen and Georgios Arvanitidis. 2025.
+\newblock \href {http://arxiv.org/abs/2502.08448} {Monge {SAM}: Robust reparameterization-invariant sharpness-aware minimization based on loss geometry}.
+
+\bibitem[{Keskar et~al.(2016)Keskar, Mudigere, Nocedal, Smelyanskiy, and Tang}]{keskar2016large}
+Nitish~Shirish Keskar, Dheevatsa Mudigere, Jorge Nocedal, Mikhail Smelyanskiy, and Ping Tak~Peter Tang. 2016.
+\newblock On large-batch training for deep learning: Generalization gap and sharp minima.
+\newblock \emph{arXiv preprint arXiv:1609.04836}.
+
+\bibitem[{Krizhevsky(2009)}]{Krizhevsky09learningmultiple}
+Alex Krizhevsky. 2009.
+\newblock Learning multiple layers of features from tiny images.
+\newblock Technical report, University of Toronto.
+
+\bibitem[{Kwon et~al.(2021)Kwon, Kim, Park, and Choi}]{kwon2021asam}
+Jungmin Kwon, Jeongseop Kim, Hyunseo Park, and In~Kwon Choi. 2021.
+\newblock \href {https://arxiv.org/abs/2102.11600} {{ASAM}: Adaptive sharpness-aware minimization for scale-invariant learning of deep neural networks}.
+\newblock In \emph{International Conference on Machine Learning (ICML)}.
+
+\bibitem[{Lhoest et~al.(2021)Lhoest, Villanova~del Moral, Jernite, Thakur, von Platen, Patil, Chaumond, Drame, Plu, Tunstall, Davison, {\v{S}}a{\v{s}}ko, Chhablani, Malik, Brandeis, Le~Scao, Sanh, Xu, Patry, McMillan-Major, Schmid, Gugger, Delangue, Matussi{\`e}re, Debut, Bekman, Cistac, Goehringer, Mustar, Lagunas, Rush, and Wolf}]{lhoest-etal-2021-datasets}
+Quentin Lhoest, Albert Villanova~del Moral, Yacine Jernite, Abhishek Thakur, Patrick von Platen, Suraj Patil, Julien Chaumond, Mariama Drame, Julien Plu, Lewis Tunstall, Joe Davison, Mario {\v{S}}a{\v{s}}ko, Gunjan Chhablani, Bhavitvya Malik, Simon Brandeis, Teven Le~Scao, Victor Sanh, Canwen Xu, Nicolas Patry, Angelina McMillan-Major, Philipp Schmid, Sylvain Gugger, Cl{\'e}ment Delangue, Th{\'e}o Matussi{\`e}re, Lysandre Debut, Stas Bekman, Pierric Cistac, Thibault Goehringer, Victor Mustar, Fran{\c{c}}ois Lagunas, Alexander Rush, and Thomas Wolf. 2021.
+\newblock \href {http://arxiv.org/abs/2109.02846} {Datasets: A community library for natural language processing}.
+\newblock In \emph{Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing: System Demonstrations}, pages 175--184, Online and Punta Cana, Dominican Republic. Association for Computational Linguistics.
+
+\bibitem[{Li et~al.(2018)Li, Xu, Taylor, Studer, and Goldstein}]{li2018visualizing}
+Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, and Tom Goldstein. 2018.
+\newblock Visualizing the loss landscape of neural nets.
+\newblock \emph{Advances in neural information processing systems}, 31.
+
+\end{thebibliography}

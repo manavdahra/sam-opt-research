@@ -7,7 +7,7 @@ Produces three interactive HTML figures saved alongside the JSON:
 
 Usage:
     uv run python experiments/plot_baseline.py \
-        --results results/results/baseline/resnet18/baseline_results.json
+        --results results/experiments/baseline/resnet18/baseline_results.json
 """
 from __future__ import annotations
 
@@ -25,10 +25,10 @@ from plotly.subplots import make_subplots
 
 # ── colour / symbol map ──────────────────────────────────────────────────────
 OPT_STYLE: dict[str, dict] = {
-    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
-    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
-    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
     "sgd":  {"color": "#9E9E9E", "symbol": "diamond",  "label": "SGD"},
+    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
+    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
+    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
 }
 
 
@@ -57,8 +57,8 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
         annotation_position="top right",
     )
 
-    # SAM & MSAM — line plots over ρ
-    for opt in ("sam", "msam"):
+    # SAM, ASAM & MSAM — line plots over ρ
+    for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
             key=lambda s: _summary(s)["rho"],
@@ -72,18 +72,6 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
             line=dict(color=style["color"]),
             marker=dict(color=style["color"], size=8, symbol=style["symbol"]),
         ))
-
-    # ASAM — single point
-    asam = next(s for s in data if _summary(s)["optimizer"] == "asam")
-    asam_rho = _summary(asam)["rho"]
-    asam_acc = _summary(asam)["test_acc_mean"]
-    style = OPT_STYLE["asam"]
-    fig.add_trace(go.Scatter(
-        x=[asam_rho], y=[asam_acc], mode="markers+text",
-        name=f"{style['label']} (ρ={asam_rho})",
-        marker=dict(color=style["color"], size=12, symbol=style["symbol"]),
-        text=[f"ρ={asam_rho}"], textposition="bottom center",
-    ))
 
     fig.update_layout(
         title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
@@ -112,12 +100,14 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
         subplot_titles=["Gen. Gap vs ρ", "Best ρ per Optimizer"],
     )
 
-    # Left: SAM & MSAM line plots
-    for opt in ("sam", "msam"):
+    # Left: SAM, ASAM & MSAM line plots
+    for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
             key=lambda s: _summary(s)["rho"],
         )
+        if not rows:
+            continue
         rhos = [_summary(r)["rho"] for r in rows]
         gaps = [_summary(r)["divergence_rate_mean"] for r in rows]
         style = OPT_STYLE[opt]
@@ -141,6 +131,8 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
     best_labels, best_gaps, best_colors = [], [], []
     for opt in ("sgd", "sam", "msam", "asam"):
         rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+        if not rows_:
+            continue
         best_entry = min(rows_, key=lambda s: _summary(s)["divergence_rate_mean"])
         label = OPT_STYLE[opt]["label"]
         gap = _summary(best_entry)["divergence_rate_mean"]
@@ -177,21 +169,20 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
 def plot_summary(data: list[dict], out_dir: str) -> None:
     fig = make_subplots(
         rows=1, cols=2,
-        subplot_titles=["Best Test Accuracy per Optimizer", "Smallest Generalization Gap per Optimizer"],
+        subplot_titles=["Avg Test Accuracy per Optimizer", "Avg Generalization Gap per Optimizer"],
     )
 
-    for col_idx, (metric_key, maximize) in enumerate([
-        ("test_acc_mean", True),
-        ("divergence_rate_mean", False),
+    for col_idx, metric_key in enumerate([
+        "test_acc_mean",
+        "divergence_rate_mean",
     ], start=1):
         labels, vals, colors = [], [], []
         for opt in ("sgd", "sam", "msam", "asam"):
             rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
-            best_entry = (max if maximize else min)(rows_, key=lambda s: _summary(s)[metric_key])
-            label = OPT_STYLE[opt]["label"]
-            val = _summary(best_entry)[metric_key]
-            rho = _summary(best_entry)["rho"]
-            labels.append(f"{label}<br>(ρ={rho})")
+            if not rows_:
+                continue
+            val = sum(_summary(r)[metric_key] for r in rows_) / len(rows_)
+            labels.append(OPT_STYLE[opt]["label"])
             vals.append(val)
             colors.append(OPT_STYLE[opt]["color"])
 
@@ -216,9 +207,11 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
-def main(results_path: str) -> None:
+def main(results_path: str, out_dir: str | None = None) -> None:
     data = load_results(results_path)
-    out_dir = os.path.dirname(os.path.abspath(results_path))
+    if out_dir is None:
+        out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
+    os.makedirs(out_dir, exist_ok=True)
 
     print(f"\nLoaded {len(data)} entries from {results_path}")
     print("\n── Accuracy table ──")
@@ -239,8 +232,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--results",
-        default="results/results/baseline/resnet18/baseline_results.json",
+        default="results/resnet18/experiments/baseline/resnet18/baseline_results.json",
         help="Path to baseline_results.json",
     )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory for output plots (default: <results_dir>/plots/)",
+    )
     args = parser.parse_args()
-    main(args.results)
+    main(args.results, args.out_dir)

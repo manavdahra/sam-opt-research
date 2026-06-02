@@ -5,8 +5,24 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 
 
+"""The mean and std values are computed by following script:
+
+.. code-block:: python
+import torch
+from torchvision.datasets import CIFAR10
+import torchvision.transforms as transforms
+
+ds = CIFAR10(root="./data", train=True, download=True, transform=transforms.ToTensor())
+loader = torch.utils.data.DataLoader(ds, batch_size=5000, num_workers=2)
+
+imgs = torch.cat([x for x, _ in loader])  # shape (50000, 3, 32, 32)
+mean = imgs.mean(dim=(0, 2, 3))  # per-channel mean
+std  = imgs.std(dim=(0, 2, 3))   # per-channel std
+print(mean, std)
+
+"""
 CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
-CIFAR10_STD = (0.247, 0.243, 0.261)
+CIFAR10_STD = (0.2470, 0.2435, 0.2616)
 
 
 def _worker_init_fn(worker_id: int) -> None:
@@ -42,6 +58,8 @@ def get_cifar10_loaders(
     batch_size: int = 128,
     num_workers: int = 4,
     resize: int | None = None,
+    max_samples: int | None = None,
+    shuffle: bool = True,
 ) -> tuple[DataLoader, DataLoader]:
     """Return (train_loader, test_loader) for CIFAR-10.
 
@@ -52,6 +70,8 @@ def get_cifar10_loaders(
         batch_size: Mini-batch size for both loaders.
         num_workers: Number of DataLoader worker processes.
         resize: If given, resize images to this square size (e.g. 224 for ViT).
+        max_samples: If given, truncate both train and test sets to this many
+            samples (useful for smoke tests).
     """
     base_transforms = []
     if resize is not None:
@@ -83,6 +103,11 @@ def get_cifar10_loaders(
     train_dataset = _HFCifar10Dataset(hf_ds["train"], train_transform)
     test_dataset = _HFCifar10Dataset(hf_ds["test"], test_transform)
 
+    if max_samples is not None:
+        from torch.utils.data import Subset
+        train_dataset = Subset(train_dataset, range(min(max_samples, len(train_dataset))))
+        test_dataset = Subset(test_dataset, range(min(max_samples, len(test_dataset))))
+
     import torch
     pin_memory = torch.cuda.is_available()  # pin_memory is unsupported on MPS
 
@@ -95,7 +120,7 @@ def get_cifar10_loaders(
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
         worker_init_fn=_worker_init_fn,
@@ -103,7 +128,7 @@ def get_cifar10_loaders(
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
         worker_init_fn=_worker_init_fn,

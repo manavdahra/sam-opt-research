@@ -33,96 +33,6 @@ def _filter_normalized_direction(model: nn.Module) -> list[torch.Tensor]:
     return direction
 
 
-@torch.no_grad()
-def _perturb_model(model: nn.Module, direction: list[torch.Tensor], step: float) -> None:
-    for p, d in zip(model.parameters(), direction):
-        p.add_(d * step)
-
-
-def loss_landscape_1d(
-    model: nn.Module,
-    loss_fn: nn.Module,
-    loader: DataLoader,
-    device: torch.device,
-    steps: int = 51,
-    range_: float = 1.0,
-    direction: list[torch.Tensor] | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the loss along a random 1D direction through the current θ*.
-
-    Args:
-        model: Trained model.
-        loss_fn: Loss function.
-        loader: DataLoader (a single batch is used for speed).
-        device: Computation device.
-        steps: Number of interpolation steps (odd number recommended).
-        range_: Perturbation range in each direction.
-        direction: Pre-computed direction (optional). If None, a new
-            filter-normalized random direction is sampled.
-
-    Returns:
-        (alphas, losses): 1D arrays of shape (steps,).
-    """
-    inputs, targets = next(iter(loader))
-    inputs, targets = inputs.to(device), targets.to(device)
-
-    if direction is None:
-        direction = _filter_normalized_direction(model)
-
-    model_copy = copy.deepcopy(model).to(device)
-    model_copy.eval()
-    dir_device = [d.to(device) for d in direction]
-
-    alphas = np.linspace(-range_, range_, steps)
-    losses = []
-    for alpha in alphas:
-        _perturb_model(model_copy, dir_device, float(alpha))
-        with torch.no_grad():
-            outputs = model_copy(inputs)
-            loss = loss_fn(outputs, targets)
-        losses.append(loss.item())
-        _perturb_model(model_copy, dir_device, -float(alpha))  # restore
-
-    return alphas, np.array(losses)
-
-
-def plot_loss_landscape(
-    histories: dict[str, tuple[np.ndarray, np.ndarray]],
-    save_path: str | None = None,
-    y_clip: float | None = 5.0,
-) -> go.Figure:
-    """Plot 1D loss landscapes for multiple optimizers on a single figure.
-
-    Args:
-        histories: {optimizer_name: (alphas, losses)} from loss_landscape_1d().
-        save_path: If given, save as HTML (replaces .png suffix if present).
-        y_clip: Clip y-axis to this value to keep the basin visible.
-            The extreme perturbations (α≈±1) can reach very high losses that
-            squash the interesting region near the minimum. Default 5.0.
-
-    Returns:
-        plotly Figure.
-    """
-    fig = go.Figure()
-    for name, (alphas, losses) in histories.items():
-        y = np.clip(losses, 0, y_clip) if y_clip is not None else losses
-        fig.add_trace(go.Scatter(
-            x=alphas.tolist(), y=y.tolist(),
-            mode="lines", name=name,
-        ))
-    fig.update_layout(
-        title="1D Loss Landscape",
-        xaxis_title="Perturbation α",
-        yaxis_title="Loss",
-        template="plotly_white",
-        legend=dict(x=0.01, y=0.99),
-    )
-    if save_path is not None:
-        html_path = save_path.replace(".png", ".html") if save_path.endswith(".png") else save_path
-        fig.write_html(html_path)
-    return fig
-
-
 def loss_landscape_2d(
     model: nn.Module,
     loss_fn: nn.Module,
@@ -156,6 +66,22 @@ def loss_landscape_2d(
     coeff = dot / (norm1_sq + 1e-12)
     dir2 = [d2 - coeff * d1 for d2, d1 in zip(dir2, dir1)]
 
+    # Re-apply filter normalization to dir2 after orthogonalization so that
+    # both directions have comparable per-filter scales (matching model weights).
+    dir2_renorm = []
+    for d2, p in zip(dir2, model.parameters()):
+        if p.dim() >= 2:
+            d = d2.clone()
+            for i in range(p.size(0)):
+                norm_d = d[i].norm()
+                norm_p = p[i].norm()
+                if norm_d > 1e-10:
+                    d[i] = d[i] / norm_d * norm_p
+            dir2_renorm.append(d)
+        else:
+            dir2_renorm.append(d2)
+    dir2 = dir2_renorm
+
     model_copy = copy.deepcopy(model).to(device)
     model_copy.eval()
     dir1_dev = [d.to(device) for d in dir1]
@@ -175,6 +101,11 @@ def loss_landscape_2d(
                 outputs = model_copy(inputs)
                 loss = loss_fn(outputs, targets)
             losses[i, j] = loss.item()
+
+    # Explicitly free all GPU tensors before returning
+    del model_copy, originals, dir1_dev, dir2_dev, inputs, targets
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     return alphas, betas, losses
 
