@@ -12,7 +12,6 @@
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{1}{section.2}\protected@file@percent }
 \citation{Krizhevsky09learningmultiple}
-\citation{lhoest-etal-2021-datasets}
 \@writefile{toc}{\contentsline {section}{\numberline {3}Dataset and Features}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Methods}{2}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Experimental setup}{2}{subsection.4.1}\protected@file@percent }
@@ -39,31 +38,38 @@
 \newlabel{fig:resnet_loss_landscapes}{{4}{5}{2D loss landscapes for ResNet-18 under different optimizers. M-SAM consistently finds flatter minima with lower curvature estimates, while ASAM's curvature is higher but still better than SAM and SGD}{figure.caption.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion and Future Work}{5}{section.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Appendices}{6}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Sample CIFAR-10 images}{6}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Dataset and Input Pipeline Details}{6}{subsection.7.1}\protected@file@percent }
+\newlabel{appendix:dataset_details}{{7.1}{6}{Dataset and Input Pipeline Details}{subsection.7.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Sample CIFAR-10 images}{6}{subsection.7.2}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Example images from the CIFAR-10 dataset (one per class). Classes are, from left to right: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck.}}{6}{figure.caption.7}\protected@file@percent }
 \newlabel{fig:cifar10_samples}{{5}{6}{Example images from the CIFAR-10 dataset (one per class). Classes are, from left to right: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck}{figure.caption.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Preprocessing Details}{6}{subsection.7.2}\protected@file@percent }
-\newlabel{appendix:preprocessing}{{7.2}{6}{Preprocessing Details}{subsection.7.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Training infrastructure}{6}{subsection.7.3}\protected@file@percent }
-\newlabel{appendix:infrastructure}{{7.3}{6}{Training infrastructure}{subsection.7.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Hyper-parameters}{7}{subsection.7.4}\protected@file@percent }
-\newlabel{appendix:hyperparameters}{{7.4}{7}{Hyper-parameters}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Preprocessing Details}{6}{subsection.7.3}\protected@file@percent }
+\newlabel{appendix:preprocessing}{{7.3}{6}{Preprocessing Details}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Training infrastructure}{6}{subsection.7.4}\protected@file@percent }
+\newlabel{appendix:infrastructure}{{7.4}{6}{Training infrastructure}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Hyper-parameters}{7}{subsection.7.5}\protected@file@percent }
+\newlabel{appendix:hyperparameters}{{7.5}{7}{Hyper-parameters}{subsection.7.5}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Hyper-parameter grid used across all experiments. Baseline runs use $\alpha =1.0$; reparametrisation runs use $\alpha =5.0$. Every combination of optimizer $\times $ $\rho $ $\times $ seed is evaluated independently, yielding $4 \times 3 \times 3 = 36$ runs per architecture per $\alpha $ setting.}}{7}{table.caption.8}\protected@file@percent }
 \newlabel{tab:hyperparameters}{{2}{7}{Hyper-parameter grid used across all experiments. Baseline runs use $\alpha =1.0$; reparametrisation runs use $\alpha =5.0$. Every combination of optimizer $\times $ $\rho $ $\times $ seed is evaluated independently, yielding $4 \times 3 \times 3 = 36$ runs per architecture per $\alpha $ setting}{table.caption.8}{}}
-\newlabel{appendix:reparametrization}{{7.4}{7}{Hyper-parameters}{table.caption.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Reparameterization}{7}{subsection.7.5}\protected@file@percent }
-\newlabel{appendix:gelu_taylor_approx}{{7.5}{7}{Reparameterization}{subsection.7.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}GELU linearisation for ViT reparametrization}{7}{subsection.7.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}ResNet loss curves for baseline and reparametrized settings}{8}{subsection.7.7}\protected@file@percent }
+\newlabel{appendix:reparametrization}{{7.5}{7}{Hyper-parameters}{table.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Reparameterization}{7}{subsection.7.6}\protected@file@percent }
+\newlabel{appendix:gelu_taylor_approx}{{7.6}{7}{Reparameterization}{subsection.7.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}GELU linearisation for ViT reparametrization}{7}{subsection.7.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}ResNet loss curves for baseline and reparametrized settings}{8}{subsection.7.8}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Epoch-wise training loss curves for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}}{8}{figure.caption.9}\protected@file@percent }
 \newlabel{fig:resnet_good}{{6}{8}{Epoch-wise training loss curves for ResNet-18 trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima}{figure.caption.9}{}}
-\bibstyle{acl_natbib}
-\bibdata{references}
-\bibcite{dinh17b}{{1}{2017}{{Dinh et~al.}}{{Dinh, Pascanu, Bengio, and Bengio}}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}ViT loss curves for baseline and reparametrized settings}{9}{subsection.7.8}\protected@file@percent }
+\citation{li2018visualizing}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}ViT loss curves for baseline and reparametrized settings}{9}{subsection.7.9}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Epoch-wise training loss curves for ViT trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima.}}{9}{figure.caption.10}\protected@file@percent }
 \newlabel{fig:vit_good}{{7}{9}{Epoch-wise training loss curves for ViT trained with SGD, SAM, ASAM, and M-SAM. The plot shows that M-SAM converges faster and achieves a lower training loss compared to the other optimizers, indicating its effectiveness in finding flatter minima}{figure.caption.10}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Contributions}{9}{section.8}\protected@file@percent }
+\newlabel{appendix:loss_landscape_2d}{{7.9}{9}{ViT loss curves for baseline and reparametrized settings}{figure.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.10}Overview of Filter-Wise Normalisation and Additional Loss Landscapes for ResNet-18}{9}{subsection.7.10}\protected@file@percent }
+\bibstyle{acl_natbib}
+\bibdata{references}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 2D loss landscapes for ResNet-18 using different optimizers with $\alpha =5.0$.}}{10}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:resnet_loss_landscapes}{{8}{10}{2D loss landscapes for ResNet-18 using different optimizers with $\alpha =5.0$}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Contributions}{10}{section.8}\protected@file@percent }
+\bibcite{dinh17b}{{1}{2017}{{Dinh et~al.}}{{Dinh, Pascanu, Bengio, and Bengio}}}
 \bibcite{foret2021sam}{{2}{2021}{{Foret et~al.}}{{Foret, Kleiner, Mobahi, and Neyshabur}}}
 \bibcite{hochreiter1997flat}{{3}{1997}{{Hochreiter and Schmidhuber}}{{}}}
 \bibcite{hutchinson1989stochastic}{{4}{1989}{{Hutchinson}}{{}}}
@@ -71,6 +77,5 @@
 \bibcite{keskar2016large}{{6}{2016}{{Keskar et~al.}}{{Keskar, Mudigere, Nocedal, Smelyanskiy, and Tang}}}
 \bibcite{Krizhevsky09learningmultiple}{{7}{2009}{{Krizhevsky}}{{}}}
 \bibcite{kwon2021asam}{{8}{2021}{{Kwon et~al.}}{{Kwon, Kim, Park, and Choi}}}
-\bibcite{lhoest-etal-2021-datasets}{{9}{2021}{{Lhoest et~al.}}{{Lhoest, Villanova~del Moral, Jernite, Thakur, von Platen, Patil, Chaumond, Drame, Plu, Tunstall, Davison, {\v {S}}a{\v {s}}ko, Chhablani, Malik, Brandeis, Le~Scao, Sanh, Xu, Patry, McMillan-Major, Schmid, Gugger, Delangue, Matussi{\`e}re, Debut, Bekman, Cistac, Goehringer, Mustar, Lagunas, Rush, and Wolf}}}
-\bibcite{li2018visualizing}{{10}{2018}{{Li et~al.}}{{Li, Xu, Taylor, Studer, and Goldstein}}}
-\gdef \@abspage@last{10}
+\bibcite{li2018visualizing}{{9}{2018}{{Li et~al.}}{{Li, Xu, Taylor, Studer, and Goldstein}}}
+\gdef \@abspage@last{11}

@@ -46,9 +46,9 @@ THRESHOLD_LABELS = ["90%", "95%", "99%"]
 
 OPT_STYLE: dict[str, dict] = {
     "sgd":  {"color": "#9E9E9E", "label": "SGD"},
-    "sam":  {"color": "#2196F3", "label": "SAM"},
-    "asam": {"color": "#FF9800", "label": "ASAM"},
-    "msam": {"color": "#4CAF50", "label": "M-SAM"},
+    "sam":  {"color": "#2A93E9", "label": "SAM"},
+    "asam": {"color": "#FBB671", "label": "ASAM"},
+    "msam": {"color": "#399E8D", "label": "M-SAM"},
 }
 
 # SAM-family runs 2 forward+backward passes per batch; SGD runs 1.
@@ -187,7 +187,7 @@ def build_figure(
                 wc_mean = None
             wallclock_vals.append(wc_mean)
 
-        show_legend = True
+        legend_name = {1: "legend", 2: "legend2", 3: "legend3"}
         for col, vals in enumerate([epochs_vals, flops_vals, wallclock_vals[:n_panels - 1 if n_panels == 2 else 3]], start=1):
             if col > n_panels:
                 break
@@ -202,20 +202,34 @@ def build_figure(
                     text=text,
                     textposition="outside",
                     marker_color=style["color"],
-                    showlegend=show_legend,
-                    legendgroup=opt,
+                    showlegend=True,
+                    legend=legend_name[col],
                 ),
                 row=1, col=col,
             )
-            show_legend = False  # only show once in legend
 
-    fig.update_layout(
+    # Per-panel legend x-anchors (centres of panels 1, 2, 3 for horizontal_spacing=0.10)
+    panel_centers = {1: 0.13, 2: 0.50, 3: 0.87}
+    legend_common = dict(
+        orientation="h",
+        y=-0.18,
+        yanchor="top",
+        xanchor="center",
+        bgcolor="rgba(255,255,255,0)",
+        bordercolor="rgba(255,255,255,0)",
+    )
+    layout_kwargs: dict = dict(
         title="Convergence-rate comparison (best-ρ per optimizer)",
         barmode="group",
         height=500,
-        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
-        template="plotly_white",
+        bargap=0.15,
+        bargroupgap=0.1,
+        legend=dict(x=panel_centers[1], **legend_common),
+        legend2=dict(x=panel_centers[2], **legend_common),
     )
+    if n_panels == 3:
+        layout_kwargs["legend3"] = dict(x=panel_centers[3], **legend_common)
+    fig.update_layout(**layout_kwargs)
     fig.update_xaxes(title_text="Accuracy threshold τ")
     fig.update_yaxes(title_text="Epochs", row=1, col=1)
     fig.update_yaxes(title_text="GFLOPs", row=1, col=2)
