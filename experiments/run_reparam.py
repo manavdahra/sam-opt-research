@@ -1,13 +1,3 @@
-"""Experiment 2 — Reparametrisation invariance.
-
-Applies a function-preserving scale transform (alpha) to the model's initial
-weights before training, then measures variance of final test accuracy across
-alpha values. A reparametrisation-invariant optimizer should show low variance.
-
-Usage:
-    python experiments/run_reparam.py --config configs/resnet18_reparam.yaml
-    python experiments/run_reparam.py --config configs/vit_reparam.yaml
-"""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +5,7 @@ import os
 import sys
 import yaml
 import numpy as np
+import datetime
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -25,7 +16,6 @@ import torch.nn as nn
 
 from src.data.cifar10 import get_cifar10_loaders
 from src.training.trainer import train
-from src.analysis.metrics import aggregate_seeds
 from src.analysis.reparam import apply_reparam
 from experiments.utils import (
     get_device, set_seed, build_model, build_optimizer, save_results,
@@ -47,15 +37,15 @@ def run_single(
     experiments_dir: str,
     results_root: str,
 ) -> dict:
+    """Run a single training session for the given optimizer type, rho, alpha, and seed, then save results and return a summary dict."""
     device = get_device()
     set_seed(seed)
 
-    resize = cfg.get("resize")
     train_loader, test_loader = get_cifar10_loaders(
         data_dir=cfg["data_dir"],
         batch_size=cfg["batch_size"],
         num_workers=cfg.get("num_workers", 4),
-        resize=resize,
+        resize=cfg.get("resize"),
         max_samples=cfg.get("max_samples"),
     )
 
@@ -65,6 +55,7 @@ def run_single(
     optimizer, scheduler = build_optimizer(opt_type, model.parameters(), cfg, rho)
     loss_fn = nn.CrossEntropyLoss()
 
+    # Train the model and collect training history
     history = train(
         model,
         optimizer,
@@ -77,19 +68,18 @@ def run_single(
         verbose=True,
     )
 
-    # ── Write canonical per-run directory ────────────────────────────────────
+    """Save checkpoints and results for this run."""
     run_id = make_run_id(cfg["model"], opt_type, rho, seed, suffix=f"alpha{alpha}")
     run_dir = write_run_dir(runs_dir, run_id, cfg, history, model.state_dict())
     print(f"Run artefacts saved → {run_dir}")
 
-    # ── Convenience copy for downstream analysis ──────────────────────────────
+    """Save a checkpoint of the final model state dict for this run in the experiment's checkpoints directory, with a descriptive filename for easy lookup later."""
     ckpt_dir = os.path.join(experiments_dir, "reparam", cfg["model"], "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
     ckpt_path = os.path.join(ckpt_dir, f"{opt_type}_rho{rho}_alpha{alpha}_seed{seed}.pt")
     torch.save(model.state_dict(), ckpt_path)
 
-    # ── Update index.json ────────────────────────────────────────────────────
-    import datetime
+    """Also update the global index of runs with metadata for this run, including the test accuracy and checkpoint path for easy querying later."""
     update_index(results_root, run_id, {
         "model": cfg["model"],
         "optimizer": opt_type,
@@ -130,24 +120,24 @@ def main(config_path: str) -> None:
     out_path = os.path.join(experiments_dir, "reparam", model_name, "reparam_results.json")
 
     # Load already-completed results to support resuming after restart
-    _done: set[tuple] = set()
+    done: set[tuple] = set()
     if os.path.exists(out_path):
         import json
         with open(out_path) as _f:
             all_results = json.load(_f)
         for _r in all_results:
             for _ps in _r.get("per_seed", []):
-                _done.add((_r["optimizer"], _r["rho"], _r["alpha"], _ps["seed"]))
-        print(f"Resuming: {len(_done)} (opt, rho, alpha, seed) combos already done.")
+                done.add((_r["optimizer"], _r["rho"], _r["alpha"], _ps["seed"]))
+        print(f"Resuming: {len(done)} (opt, rho, alpha, seed) combos already done.")
 
     ckpt_dir_check = os.path.join(experiments_dir, "reparam", model_name, "checkpoints")
 
     # Build a lookup for already-completed (opt, rho, alpha) entries so we can
     # reconstruct per_seed data for the variance calculation on resume.
-    _done_results: dict[tuple, dict] = {}
+    done_results: dict[tuple, dict] = {}
     for _r in all_results:
         key = (_r["optimizer"], _r["rho"], _r["alpha"])
-        _done_results[key] = _r
+        done_results[key] = _r
 
     for opt_name, opt_cfg in opt_cfgs.items():
         opt_type = opt_cfg["type"]
@@ -161,28 +151,28 @@ def main(config_path: str) -> None:
             for alpha in alpha_values:
                 combo_key = (opt_name, rho, alpha)
                 all_seeds_done = (
-                    combo_key in _done_results
+                    combo_key in done_results
                     and all(
-                        (opt_name, rho, alpha, seed) in _done
+                        (opt_name, rho, alpha, seed) in done
                         and os.path.exists(os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_alpha{alpha}_seed{seed}.pt"))
                         for seed in seeds
                     )
                 )
-                if all_seeds_done and combo_key in _done_results:
+                if all_seeds_done and combo_key in done_results:
                     # Reuse existing result; reconstruct accs for variance calc
-                    existing = _done_results[combo_key]
+                    existing = done_results[combo_key]
                     alpha_accs[alpha] = [ps["test_acc"] for ps in existing["per_seed"]]
                     print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} — fully done, skipping")
                     continue
 
                 # Load any already-done seeds from the existing result entry
                 per_seed: list[dict] = []
-                if combo_key in _done_results:
-                    per_seed = list(_done_results[combo_key]["per_seed"])
+                if combo_key in done_results:
+                    per_seed = list(done_results[combo_key]["per_seed"])
 
                 for seed in seeds:
                     ckpt_path_check = os.path.join(ckpt_dir_check, f"{opt_type}_rho{rho}_alpha{alpha}_seed{seed}.pt")
-                    if (opt_name, rho, alpha, seed) in _done or os.path.exists(ckpt_path_check):
+                    if (opt_name, rho, alpha, seed) in done or os.path.exists(ckpt_path_check):
                         print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} seed={seed} — skipping (checkpoint exists)")
                         continue
                     print(f"\n[{model_name}] opt={opt_name} rho={rho} alpha={alpha} seed={seed}")
@@ -201,12 +191,12 @@ def main(config_path: str) -> None:
                     "test_acc_sem": float(np.std(accs, ddof=1) / np.sqrt(len(accs))) if len(accs) > 1 else 0.0,
                     "per_seed": per_seed,
                 }
-                if combo_key in _done_results:
+                if combo_key in done_results:
                     # Replace the stale entry in all_results
                     all_results = [r for r in all_results
                                    if not (r["optimizer"] == opt_name and r["rho"] == rho and r["alpha"] == alpha)]
                 all_results.append(entry)
-                _done_results[combo_key] = entry
+                done_results[combo_key] = entry
 
                 # Save incrementally so progress is not lost on interruption
                 save_results(out_path, all_results)

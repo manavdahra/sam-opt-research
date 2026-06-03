@@ -1,13 +1,3 @@
-"""Visualize baseline results from baseline_results.json.
-
-Produces three interactive HTML figures saved alongside the JSON:
-  1. baseline_accuracy.html  — test accuracy vs rho per optimizer family
-  2. baseline_gen_gap.html   — generalization gap per optimizer/rho
-  3. baseline_summary.html   — best-rho accuracy + gen-gap side by side
-
-Usage:
-    uv run python experiments/plot_baseline.py --results results/experiments/baseline/resnet18/baseline_results.json
-"""
 from __future__ import annotations
 
 import argparse
@@ -36,33 +26,39 @@ def load_results(path: str) -> list[dict]:
         return json.load(f)
 
 
-def _summary(entry: dict) -> dict:
+def summary(entry: dict) -> dict:
     return entry["summary"]
 
 
-def plot_accuracy(data: list[dict], out_dir: str) -> None:
+def plot_accuracy_vs_rho(data: list[dict], out_dir: str) -> None:
     """Plot test accuracy vs rho for all optimizers, with SGD as a horizontal dashed reference line."""
     fig = go.Figure()
 
-    # We plot SGD as horizontal dashed line for reference
-    sgd = next(s for s in data if _summary(s)["optimizer"] == "sgd")
-    sgd_acc = _summary(sgd)["test_acc_mean"]
-    fig.add_hline(
-        y=sgd_acc,
-        line_dash="dash",
-        line_color=OPT_STYLE["sgd"]["color"],
-        annotation_text=f"SGD ({sgd_acc:.4f})",
-        annotation_position="top right",
-    )
+    # Collect all rho values from SAM-family optimizers to set the x-span of the SGD reference
+    all_rhos = []
+    for opt in ("sam", "asam", "msam"):
+        all_rhos += [summary(s)["rho"] for s in data if summary(s)["optimizer"] == opt]
+    x_min = min(all_rhos) - 0.05 if all_rhos else 0.0
+    x_max = max(all_rhos) + 0.05 if all_rhos else 1.0
+
+    # Plot SGD as a Scatter trace (not add_hline) so its y-value is included in autorange
+    sgd = next(s for s in data if summary(s)["optimizer"] == "sgd")
+    sgd_acc = summary(sgd)["test_acc_mean"]
+    fig.add_trace(go.Scatter(
+        x=[x_min, x_max], y=[sgd_acc, sgd_acc],
+        mode="lines",
+        name=f"SGD ({sgd_acc:.4f})",
+        line=dict(color=OPT_STYLE["sgd"]["color"], dash="dash"),
+    ))
 
     # Line plot Test accuracy for SAM, ASAM & MSAM
     for opt in ("sam", "asam", "msam"):
         rows = sorted(
-            [s for s in data if _summary(s)["optimizer"] == opt],
-            key=lambda s: _summary(s)["rho"],
+            [s for s in data if summary(s)["optimizer"] == opt],
+            key=lambda s: summary(s)["rho"],
         )
-        rhos = [_summary(r)["rho"] for r in rows]
-        accs = [_summary(r)["test_acc_mean"] for r in rows]
+        rhos = [summary(r)["rho"] for r in rows]
+        accs = [summary(r)["test_acc_mean"] for r in rows]
         style = OPT_STYLE[opt]
         fig.add_trace(go.Scatter(
             x=rhos, y=accs, mode="lines+markers",
@@ -75,37 +71,39 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
         title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
         xaxis_title="Perturbation radius rho",
         yaxis_title="Test accuracy",
-        yaxis_tickformat=".4f",
-        template="plotly_white",
-        legend=dict(x=0.01, y=0.01),
+        yaxis=dict(range=[0.95, 0.97], tickformat=".2f"),
+        legend=dict(x=1.0, y=1.0, xanchor="right", yanchor="top", font=dict(size=12)),
         font=dict(size=16),
         title_font=dict(size=18),
+        width=800,
+        height=500,
     )
     path = os.path.join(out_dir, "baseline_accuracy.html")
     fig.write_html(path)
     print(f"Saved → {path}")
     png_path = os.path.join(out_dir, "baseline_accuracy.png")
-    fig.write_image(png_path, width=900, height=550, scale=2)
+    fig.write_image(png_path, width=800, height=500, scale=2)
     print(f"Saved → {png_path}")
 
 
-def plot_gen_gap(data: list[dict], out_dir: str) -> None:
+def plot_gen_gap_vs_rho(data: list[dict], out_dir: str) -> None:
+    """Plot generalization gap vs rho for all optimizers, with SGD as a horizontal dashed reference line."""
     fig = make_subplots(
         rows=1, cols=2,
-        column_widths=[0.6, 0.4],
+        column_widths=[0.4, 0.6],
         subplot_titles=["Gen. Gap vs rho", "Best rho per Optimizer"],
     )
 
-    # Line plots for generalization gap over rho, with SGD as horizontal dashed reference
+    # Line plot for generalization gap over rho, with SGD as horizontal dashed reference
     for opt in ("sam", "asam", "msam"):
         rows = sorted(
-            [s for s in data if _summary(s)["optimizer"] == opt],
-            key=lambda s: _summary(s)["rho"],
+            [s for s in data if summary(s)["optimizer"] == opt],
+            key=lambda s: summary(s)["rho"],
         )
         if not rows:
             continue
-        rhos = [_summary(r)["rho"] for r in rows]
-        gaps = [_summary(r)["divergence_rate_mean"] for r in rows]
+        rhos = [summary(r)["rho"] for r in rows]
+        gaps = [summary(r)["divergence_rate_mean"] for r in rows]
         style = OPT_STYLE[opt]
         fig.add_trace(go.Scatter(
             x=rhos, y=gaps, mode="lines+markers",
@@ -114,25 +112,31 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
             marker=dict(color=style["color"], size=7, symbol=style["symbol"]),
         ), row=1, col=1)
 
-    sgd = next(s for s in data if _summary(s)["optimizer"] == "sgd")
-    sgd_gap = _summary(sgd)["divergence_rate_mean"]
-    fig.add_hline(
-        y=sgd_gap, line_dash="dash", line_color=OPT_STYLE["sgd"]["color"],
-        annotation_text=f"SGD ({sgd_gap:.4f})",
-        annotation_position="top right",
-        row=1, col=1,
-    )
+    sgd = next(s for s in data if summary(s)["optimizer"] == "sgd")
+    sgd_gap = summary(sgd)["divergence_rate_mean"]
+    all_gap_rhos = []
+    for opt in ("sam", "asam", "msam"):
+        all_gap_rhos += [summary(s)["rho"] for s in data if summary(s)["optimizer"] == opt]
+    gx_min = min(all_gap_rhos) - 0.05 if all_gap_rhos else 0.0
+    gx_max = max(all_gap_rhos) + 0.05 if all_gap_rhos else 1.0
+    fig.add_trace(go.Scatter(
+        x=[gx_min, gx_max], y=[sgd_gap, sgd_gap],
+        mode="lines",
+        name=f"SGD ({sgd_gap:.4f})",
+        line=dict(color=OPT_STYLE["sgd"]["color"], dash="dash"),
+        showlegend=True,
+    ), row=1, col=1)
 
     # Bar chart for best-rho per optimizer
     best_labels, best_gaps, best_colors = [], [], []
     for opt in ("sgd", "sam", "msam", "asam"):
-        rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+        rows_ = [s for s in data if summary(s)["optimizer"] == opt]
         if not rows_:
             continue
-        best_entry = min(rows_, key=lambda s: _summary(s)["divergence_rate_mean"])
+        best_entry = min(rows_, key=lambda s: summary(s)["divergence_rate_mean"])
         label = OPT_STYLE[opt]["label"]
-        gap = _summary(best_entry)["divergence_rate_mean"]
-        rho = _summary(best_entry)["rho"]
+        gap = summary(best_entry)["divergence_rate_mean"]
+        rho = summary(best_entry)["rho"]
         best_labels.append(f"{label}<br>(rho={rho})")
         best_gaps.append(gap)
         best_colors.append(OPT_STYLE[opt]["color"])
@@ -147,20 +151,21 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
 
     fig.update_layout(
         title="Generalization Gap Analysis (ResNet-18 / CIFAR-10)",
-        template="plotly_white",
         yaxis_title="Generalization gap",
         font=dict(size=16),
         title_font=dict(size=18),
+        width=800,
+        height=500,
     )
     path = os.path.join(out_dir, "baseline_gen_gap.html")
     fig.write_html(path)
     print(f"Saved → {path}")
     png_path = os.path.join(out_dir, "baseline_gen_gap.png")
-    fig.write_image(png_path, width=1200, height=550, scale=2)
+    fig.write_image(png_path, width=800, height=500, scale=2)
     print(f"Saved → {png_path}")
 
 
-def plot_summary(data: list[dict], out_dir: str) -> None:
+def plot_summary_vs_rho(data: list[dict], out_dir: str) -> None:
     """Bar charts comparing best-rho test accuracy and gen-gap per optimizer."""
     fig = make_subplots(
         rows=1, cols=2,
@@ -173,10 +178,10 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
     ], start=1):
         labels, vals, colors = [], [], []
         for opt in ("sgd", "sam", "msam", "asam"):
-            rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
+            rows_ = [s for s in data if summary(s)["optimizer"] == opt]
             if not rows_:
                 continue
-            val = sum(_summary(r)[metric_key] for r in rows_) / len(rows_)
+            val = sum(summary(r)[metric_key] for r in rows_) / len(rows_)
             labels.append(OPT_STYLE[opt]["label"])
             vals.append(val)
             colors.append(OPT_STYLE[opt]["color"])
@@ -186,21 +191,29 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
             marker_color=colors,
             text=[f"{v:.4f}" for v in vals],
             textposition="outside",
-            showlegend=False,
+            showlegend=True,
         ), row=1, col=col_idx)
 
     fig.update_layout(
         title="ResNet-18 / CIFAR-10 — Baseline Sweep Summary",
-        template="plotly_white",
         font=dict(size=16),
         title_font=dict(size=18),
+        width=800,
+        height=500,
     )
     path = os.path.join(out_dir, "baseline_summary.html")
     fig.write_html(path)
     print(f"Saved → {path}")
-
+    png_path = os.path.join(out_dir, "baseline_summary.png")
+    fig.write_image(png_path, width=800, height=500, scale=2)
+    print(f"Saved → {png_path}")
 
 def main(results_path: str, out_dir: str | None = None) -> None:
+    """Produces three interactive HTML figures saved alongside the JSON:
+        1. baseline_accuracy.html  — test accuracy vs rho per optimizer family
+        2. baseline_gen_gap.html   — generalization gap per optimizer/rho
+        3. baseline_summary.html   — best-rho accuracy + gen-gap side by side
+    """
     data = load_results(results_path)
     if out_dir is None:
         out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
@@ -211,14 +224,14 @@ def main(results_path: str, out_dir: str | None = None) -> None:
     print(f"{'Optimizer':8s}  {'rho':6s}  {'test_acc':10s}  {'gen_gap':10s}")
     print("-" * 42)
     for entry in data:
-        s = _summary(entry)
+        s = summary(entry)
         print(f"{s['optimizer']:8s}  {s['rho']:<6.3f}  {s['test_acc_mean']:.4f}      {s['divergence_rate_mean']:.4f}")
 
-    plot_accuracy(data, out_dir)
-    plot_gen_gap(data, out_dir)
-    plot_summary(data, out_dir)
+    plot_accuracy_vs_rho(data, out_dir)
+    plot_gen_gap_vs_rho(data, out_dir)
+    plot_summary_vs_rho(data, out_dir)
 
-    print("\nAll figures saved.")
+    print("\nPlots saved.")
 
 
 if __name__ == "__main__":

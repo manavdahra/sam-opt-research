@@ -1,24 +1,3 @@
-"""Plot convergence-rate comparison (Priority 2).
-
-Three-tier convergence analysis at accuracy thresholds τ ∈ {90%, 94%, 95%}:
-
-  Panel 1 — Algorithmic:  epochs to reach τ
-  Panel 2 — Computational: total GFLOPs to reach τ  (SAM-family = 2× SGD)
-  Panel 3 — Wall-clock:   cumulative seconds to reach τ (requires elapsed_sec
-                           in history; skipped if data not available)
-
-FLOPs are estimated as:
-    forward_flops_per_epoch  = 2 × MACs_per_sample × samples_per_epoch
-    backward_flops_per_epoch = 2 × forward_flops_per_epoch
-    SGD epoch FLOPs          = forward + backward  = 3 × forward
-    SAM epoch FLOPs          = 2 × (forward + backward) = 6 × forward
-    (MACs estimated via fvcore if installed, otherwise a ResNet-18 constant)
-
-Usage:
-    uv run python experiments/plot_convergence.py \\
-        --results results/experiments/baseline/resnet18/baseline_results.json \
-        --out-dir results/experiments/baseline/resnet18
-"""
 from __future__ import annotations
 
 import argparse
@@ -39,11 +18,11 @@ from src.analysis.metrics import (
     wallclock_to_threshold,
 )
 
-# ── constants ────────────────────────────────────────────────────────────────
-
+# Accuracy thresholds for convergence comparison (as % of best test accuracy achieved by any optimizer)
 THRESHOLDS = [0.90, 0.95, 0.99]
 THRESHOLD_LABELS = ["90%", "95%", "99%"]
 
+# Plotly Colormap for optimizers
 OPT_STYLE: dict[str, dict] = {
     "sgd":  {"color": "#9E9E9E", "label": "SGD"},
     "sam":  {"color": "#2A93E9", "label": "SAM"},
@@ -51,12 +30,9 @@ OPT_STYLE: dict[str, dict] = {
     "msam": {"color": "#399E8D", "label": "M-SAM"},
 }
 
-# SAM-family runs 2 forward+backward passes per batch; SGD runs 1.
 SAM_FAMILY = {"sam", "asam", "msam"}
 
-# ── FLOPs estimation ─────────────────────────────────────────────────────────
-
-def _estimate_macs_per_sample(cfg: dict) -> float:
+def estimate_macs_per_sample(cfg: dict) -> float:
     """Compute MACs per sample using fvcore FlopCountAnalysis."""
     import torch
     from fvcore.nn import FlopCountAnalysis
@@ -81,26 +57,24 @@ def _estimate_macs_per_sample(cfg: dict) -> float:
 
 
 def compute_flops_per_epoch(opt_name: str, macs_per_sample: float, cfg: dict) -> float:
-    """Compute total FLOPs for one training epoch.
+    r"""Compute total FLOPs for one training epoch.
 
     Convention (matching standard ML FLOPs counting):
       - 1 MAC = 2 FLOPs
-      - forward pass = 2 × MACs
-      - backward pass ≈ 2 × forward
-      - SGD epoch  = (forward + backward) × n_samples = 6 × MACs × n_samples
-      - SAM epoch  = 2 × (forward + backward) × n_samples = 12 × MACs × n_samples
+      - forward pass = 2 $\times$ MACs
+      - backward pass ≈ 2 $\times$ forward
+      - SGD epoch  = (forward + backward) x n_samples = 6 $\times$ MACs x n_samples
+      - SAM epoch  = 2 $\times$ (forward + backward) x n_samples = 12 $\times$ MACs x n_samples
     """
-    n_train = 50_000  # CIFAR-10
-    # forward = 2 * MACs; backward ≈ 2 * forward = 4 * MACs; total = 6 * MACs
+    n_train = 50_000  # Training dataset size for CIFAR-10
     sgd_epoch_flops = 6.0 * macs_per_sample * n_train
     if opt_name in SAM_FAMILY:
         return 2.0 * sgd_epoch_flops
     return sgd_epoch_flops
 
 
-# ── data loading ─────────────────────────────────────────────────────────────
-
 def load_results(path: str) -> list[dict]:
+    """Load results JSON from path."""
     with open(path) as f:
         return json.load(f)
 
@@ -116,7 +90,7 @@ def best_rho_entries(data: list[dict]) -> dict[str, dict]:
     return best
 
 
-def _acc_curves(entry: dict) -> list[list[float]]:
+def acc_curves(entry: dict) -> list[list[float]]:
     """Return per-seed train_acc curves from per_seed history lists."""
     curves = []
     for seed_result in entry["per_seed"]:
@@ -126,7 +100,7 @@ def _acc_curves(entry: dict) -> list[list[float]]:
     return curves
 
 
-def _time_curves(entry: dict) -> list[list[float]]:
+def time_curves(entry: dict) -> list[list[float]]:
     """Return per-seed elapsed_sec curves from per_seed history lists."""
     curves = []
     for seed_result in entry["per_seed"]:
@@ -136,15 +110,18 @@ def _time_curves(entry: dict) -> list[list[float]]:
     return curves
 
 
-# ── main plot ─────────────────────────────────────────────────────────────────
-
 def build_figure(
     best: dict[str, dict],
     macs_per_sample: float,
     cfg: dict,
 ) -> go.Figure:
+    """Build the convergence comparison figure with 3 panels.
+    Panel 1: Epochs to threshold
+    Panel 2: GFLOPs to threshold
+    Panel 3: Seconds to threshold
+    """
     opt_order = [o for o in ("sgd", "sam", "asam", "msam") if o in best]
-    has_wallclock = any(_time_curves(best[o]) for o in opt_order)
+    has_wallclock = any(time_curves(best[o]) for o in opt_order)
     n_panels = 3 if has_wallclock else 2
     panel_titles = ["Epochs to threshold", "GFLOPs to threshold"]
     if has_wallclock:
@@ -160,8 +137,8 @@ def build_figure(
         entry = best[opt]
         style = OPT_STYLE.get(opt, {"color": "#000000", "label": opt.upper()})
         flops_epoch = compute_flops_per_epoch(opt, macs_per_sample, cfg)
-        acc_curves = _acc_curves(entry)
-        time_curves = _time_curves(entry)
+        acc_curves = acc_curves(entry)
+        time_curves = time_curves(entry)
 
         epochs_vals: list[float | None] = []
         flops_vals: list[float | None] = []
@@ -169,7 +146,7 @@ def build_figure(
 
         for tau in THRESHOLDS:
             if acc_curves:
-                # Average across seeds
+                # Get average epochs across seeds
                 ep_list = [epochs_to_threshold(c, tau) for c in acc_curves]
                 ep_valid = [e for e in ep_list if e is not None]
                 ep_mean = sum(ep_valid) / len(ep_valid) if ep_valid else None
@@ -219,7 +196,7 @@ def build_figure(
         bordercolor="rgba(255,255,255,0)",
     )
     layout_kwargs: dict = dict(
-        title="Convergence-rate comparison (best-ρ per optimizer)",
+        title="Convergence-rate comparison (best-rho per optimizer)",
         barmode="group",
         height=500,
         bargap=0.15,
@@ -243,7 +220,7 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
     data = load_results(results_path)
     best = best_rho_entries(data)
 
-    # Try to load config for FLOPs estimation
+    # Load config for FLOPs estimation
     cfg: dict = {}
     if config_path and os.path.exists(config_path):
         import yaml
@@ -260,25 +237,23 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
             with open(candidate) as f:
                 cfg = yaml.safe_load(f)
 
-    macs_per_sample = _estimate_macs_per_sample(cfg)
+    macs_per_sample = estimate_macs_per_sample(cfg)
     print(f"MACs per sample: {macs_per_sample / 1e6:.0f} M")
 
-    # Warn if histories are missing (pre-existing results without history)
-    acc_available = any(_acc_curves(e) for e in best.values())
+    acc_available = any(acc_curves(e) for e in best.values())
     if not acc_available:
-        print(
-            "WARNING: No per-epoch history found in results JSON.\n"
-            "  Convergence plots require re-running experiments with the updated\n"
-            "  run_baseline.py (which now persists per-epoch history).\n"
-            "  Exiting without producing output."
+        raise ValueError(
+             "No per-epoch accuracy curves found in results JSON.\n"
+             "  Convergence plots require re-running experiments with the updated\n"
+             "  run_baseline.py (which now persists per-epoch history).\n"
+             "  Exiting without producing output."
         )
-        return
 
     fig = build_figure(best, macs_per_sample, cfg)
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "convergence.html")
     fig.write_html(out_path)
-    print(f"Saved → {out_path}")
+    print("\nPlots saved.")
 
 
 if __name__ == "__main__":

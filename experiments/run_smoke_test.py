@@ -1,14 +1,3 @@
-"""Run lightweight smoke tests for ResNet-18 and ViT-B/32.
-
-This script mirrors the manual smoke workflow used to validate the repo:
-    1. write temporary smoke configs
-    2. run baseline sweeps on reduced setups
-    3. run flatness analysis on all generated checkpoints
-
-Usage:
-    uv run python experiments/run_smoke.py
-    uv run python experiments/run_smoke.py --work-dir /tmp/sam-opt-smoke
-"""
 from __future__ import annotations
 
 import argparse
@@ -25,7 +14,7 @@ if str(_ROOT) not in sys.path:
 from experiments import run_baseline, run_flatness, run_reparam
 
 
-def _shared_config(work_dir: Path) -> dict:
+def shared_config(work_dir: Path) -> dict:
     repo_root = Path(__file__).resolve().parents[1]
     return {
         "seeds": [0],
@@ -42,7 +31,7 @@ def _shared_config(work_dir: Path) -> dict:
     }
 
 
-def _reparam_overrides() -> dict:
+def reparam_overrides() -> dict:
     """Extra keys required by run_reparam (on top of shared config)."""
     return {
         "alpha_values": [2.0],
@@ -51,8 +40,8 @@ def _reparam_overrides() -> dict:
 
 
 def build_smoke_configs(work_dir: Path) -> list[dict]:
-    shared = _shared_config(work_dir)
-    reparam_extra = _reparam_overrides()
+    shared = shared_config(work_dir)
+    reparam_extra = reparam_overrides()
     resnet_base = {
         **shared,
         "model": "resnet18",

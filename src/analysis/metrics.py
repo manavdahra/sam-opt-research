@@ -20,7 +20,7 @@ def divergence_rate(train_loss: float, test_loss: float) -> float:
 def aggregate_seeds(
     per_seed_metrics: list[dict[str, float]],
 ) -> dict[str, float]:
-    """Aggregate a list of per-seed metric dicts into mean ± SEM.
+    """Aggregate a list of per-seed metric dicts into mean +/- SEM.
 
     For each key k in the dicts, the output contains:
         k_mean, k_sem

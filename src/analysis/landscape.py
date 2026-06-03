@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+import gc
 
 import torch
 import torch.nn as nn
@@ -17,19 +17,20 @@ def _filter_normalized_direction(model: nn.Module) -> list[torch.Tensor]:
     statistics produces erratic loss spikes that obscure the true landscape.
     """
     direction = []
-    for p in model.parameters():
-        if p.dim() >= 2:
-            d = torch.randn_like(p)
-            # Per-filter normalization: normalize each filter slice
-            for i in range(p.size(0)):
-                norm_d = d[i].norm()
-                norm_p = p[i].norm()
-                if norm_d > 1e-10:
-                    d[i] = d[i] / norm_d * norm_p
-            direction.append(d)
-        else:
-            # Keep BN scale/shift and biases fixed
-            direction.append(torch.zeros_like(p))
+    with torch.no_grad():
+        for p in model.parameters():
+            if p.dim() >= 2:
+                d = torch.randn_like(p)
+                # Per-filter normalization: normalize each filter slice
+                for i in range(p.size(0)):
+                    norm_d = d[i].norm()
+                    norm_p = p[i].norm()
+                    if norm_d > 1e-10:
+                        d[i].mul_(norm_p / norm_d)
+                direction.append(d)
+            else:
+                # Keep BN scale/shift and biases fixed
+                direction.append(torch.zeros_like(p))
     return direction
 
 
@@ -41,7 +42,7 @@ def loss_landscape_2d(
     steps: int = 31,
     range_: float = 1.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute the 2D loss landscape around θ* along two orthogonal filter-normalized directions.
+    r"""Compute the 2D loss landscape around θ* along two orthogonal filter-normalized directions.
 
     Loss is evaluated on a (steps x steps) grid:
     $$
@@ -72,25 +73,28 @@ def loss_landscape_2d(
     # Re-apply filter normalization to dir2 after orthogonalization so that
     # both directions have comparable per-filter scales (matching model weights).
     dir2_renorm = []
-    for d2, p in zip(dir2, model.parameters()):
-        if p.dim() >= 2:
-            d = d2.clone()
-            for i in range(p.size(0)):
-                norm_d = d[i].norm()
-                norm_p = p[i].norm()
-                if norm_d > 1e-10:
-                    d[i] = d[i] / norm_d * norm_p
-            dir2_renorm.append(d)
-        else:
-            dir2_renorm.append(d2)
+    with torch.no_grad():
+        for d2, p in zip(dir2, model.parameters()):
+            if p.dim() >= 2:
+                d = d2.clone()
+                for i in range(p.size(0)):
+                    norm_d = d[i].norm()
+                    norm_p = p[i].norm()
+                    if norm_d > 1e-10:
+                        d[i].mul_(norm_p / norm_d)
+                dir2_renorm.append(d)
+            else:
+                dir2_renorm.append(d2)
+    # Release the Gram-Schmidt dir2 intermediates (2D-param tensors no longer needed)
+    del dir2
     dir2 = dir2_renorm
+    del dir2_renorm
 
-    model_copy = copy.deepcopy(model).to(device)
-    model_copy.eval()
-    dir1_dev = [d.to(device) for d in dir1]
-    dir2_dev = [d.to(device) for d in dir2]
-    # Save original parameters — restore cleanly at every grid point
-    originals = [p.data.clone() for p in model_copy.parameters()]
+    # Save original parameters — perturb model in-place, restore after grid sweep
+    # (avoids a full deepcopy of the model on GPU)
+    originals = [p.data.clone() for p in model.parameters()]
+    was_training = model.training
+    model.eval()
 
     alphas = np.linspace(-range_, range_, steps)
     betas = np.linspace(-range_, range_, steps)
@@ -98,15 +102,22 @@ def loss_landscape_2d(
 
     for i, alpha in enumerate(alphas):
         for j, beta in enumerate(betas):
-            for p, orig, d1, d2 in zip(model_copy.parameters(), originals, dir1_dev, dir2_dev):
-                p.data.copy_(orig + d1 * float(alpha) + d2 * float(beta))
             with torch.no_grad():
-                outputs = model_copy(inputs)
+                for p, orig, d1, d2 in zip(model.parameters(), originals, dir1, dir2):
+                    p.data.copy_(orig + d1 * float(alpha) + d2 * float(beta))
+                outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
             losses[i, j] = loss.item()
 
+    # Restore original parameters and training mode
+    with torch.no_grad():
+        for p, orig in zip(model.parameters(), originals):
+            p.data.copy_(orig)
+    model.train(was_training)
+
     # Explicitly free all GPU tensors before returning
-    del model_copy, originals, dir1_dev, dir2_dev, inputs, targets
+    del originals, dir1, dir2, inputs, targets
+    gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
@@ -121,7 +132,7 @@ def plot_loss_landscape_2d(
     save_path: str | None = None,
     z_clip: float | None = 5.0,
 ) -> go.Figure:
-    """Plot a single 2D loss landscape as a filled contour figure.
+    r"""Plot a single 2D loss landscape as a filled contour figure.
 
     Args:
         alphas: 1D array — first direction coefficients (x-axis).

@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import random
+import yaml
 
 import torch
 import torch.nn as nn
@@ -128,13 +129,12 @@ def write_run_dir(
 
     Returns the absolute path of the run directory.
     """
-    import yaml as _yaml
 
     run_dir = os.path.join(runs_dir, run_id)
     os.makedirs(run_dir, exist_ok=True)
 
     with open(os.path.join(run_dir, "config.yaml"), "w") as f:
-        _yaml.dump(dict(config), f)
+        yaml.dump(dict(config), f)
     with open(os.path.join(run_dir, "metrics.json"), "w") as f:
         json.dump(history, f, indent=2)
     torch.save(model_state, os.path.join(run_dir, "checkpoint.pt"))

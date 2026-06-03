@@ -1,19 +1,3 @@
-"""Experiment 3 — Sharpness analysis (Hutchinson trace estimate).
-
-Loads a trained model checkpoint (or a directory of checkpoints) and computes
-the Hutchinson trace estimate tr(H)/d as a sharpness proxy.
-
-For 2D loss landscape visualisation see experiments/plot_landscape.py.
-
-Single-checkpoint mode:
-    python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --checkpoint results/runs/<run-id>/checkpoint.pt
-
-Batch mode (all checkpoints in a directory):
-    python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
-        --ckpt-dir results/experiments/baseline/resnet18/checkpoints \
-        --out-dir  results/experiments/flatness/resnet18
-"""
 from __future__ import annotations
 
 import argparse
@@ -22,6 +6,7 @@ import os
 import re
 import sys
 import yaml
+from collections import defaultdict
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -30,34 +15,27 @@ if _ROOT not in sys.path:
 import numpy as np
 import torch
 import torch.nn as nn
-import plotly.graph_objects as go
 
 from src.data.cifar10 import get_cifar10_loaders
 from src.analysis.hutchinson import hutchinson_trace
 from experiments.utils import get_device, set_seed, build_model, save_results
+from experiments.plot_flatness import plot_all as plot_sharpness_all
 
-# Filename pattern: <opt>_rho<rho>_seed<seed>.pt
+# Baseline filename pattern: <opt>_rho<rho>_seed<seed>.pt to look for in results directory 
 _CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
-# Reparam filename pattern: <opt>_rho<rho>_alpha<alpha>_seed<seed>.pt
+# Reparam filename pattern: <opt>_rho<rho>_alpha<alpha>_seed<seed>.pt to look for in results directory
 _REPARAM_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_alpha(?P<alpha>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
 
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#9E9E9E", "linestyle": "--"},
-    "sam":  {"color": "#2196F3", "linestyle": "-"},
-    "asam": {"color": "#FF9800", "linestyle": "-"},
-    "msam": {"color": "#4CAF50", "linestyle": "-"},
-}
-
-
-def _load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
+def load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
+    """Load a model checkpoint from the given path and return the model in eval mode."""
     model = build_model(cfg, device)
     state = torch.load(path, map_location=device, weights_only=True)
     model.load_state_dict(state)
-    model.eval()
+    model.eval() # Set to eval mode since we're only doing inference for sharpness estimation
     return model
 
 
-def _compute_sharpness(
+def compute_sharpness(
     model: nn.Module,
     loss_fn: nn.Module,
     test_loader,
@@ -71,34 +49,41 @@ def _compute_sharpness(
     return trace
 
 
-# ── single-checkpoint mode ───────────────────────────────────────────────────
-
 def main(config_path: str, checkpoint: str | None, seed: int, experiment: str = "baseline") -> None:
     """Entry point for main.py CLI dispatch.
 
-    If *checkpoint* is provided, runs single-checkpoint mode.
+    If checkpoint is provided, runs single-checkpoint mode.
     Otherwise runs batch mode over the checkpoints saved by run_baseline.py
     or run_reparam.py depending on *experiment* ("baseline" or "reparam").
     """
-    with open(config_path) as _f:
-        _cfg = yaml.safe_load(_f)
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    
     out_dir = os.path.join(
-        _cfg.get("experiments_dir", "./results/experiments"),
+        cfg.get("experiments_dir", "./results/experiments"),
         "flatness",
         experiment,
-        _cfg["model"],
+        cfg["model"],
     )
     if checkpoint is not None:
         main_single(config_path, checkpoint, seed, out_dir)
     else:
         ckpt_dir = os.path.join(
-            _cfg.get("experiments_dir", "./results/experiments"),
-            experiment, _cfg["model"], "checkpoints",
+            cfg.get("experiments_dir", "./results/experiments"),
+            experiment, cfg["model"], "checkpoints",
         )
         main_batch(config_path, ckpt_dir, out_dir, seed, experiment=experiment)
 
 
-def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_samples: int = 20, max_batch: int = 64) -> None:
+def main_single(
+        config_path: str, 
+        checkpoint: str, 
+        seed: int, 
+        out_dir: str, 
+        n_samples: int = 20, 
+        max_batch: int = 64,
+    ) -> None:
+    """Compute and save the sharpness estimate for a single checkpoint when specified."""
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -115,8 +100,8 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
 
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
-    model = _load_checkpoint(checkpoint, cfg, device)
-    trace = _compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+    model = load_checkpoint(checkpoint, cfg, device)
+    trace = compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
 
     plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(out_dir, exist_ok=True)
@@ -125,9 +110,16 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     print(f"Data saved to {out_dir}/")
 
 
-# ── batch mode ───────────────────────────────────────────────────────────────
-
-def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_samples: int = 20, max_batch: int = 64, experiment: str = "baseline") -> None:
+def main_batch(
+        config_path: str, 
+        ckpt_dir: str, 
+        out_dir: str, 
+        seed: int, 
+        n_samples: int = 20, 
+        max_batch: int = 64, 
+        experiment: str = "baseline"
+    ) -> None:
+    """Compute and save sharpness estimates for all checkpoints in the specified directory, then produce summary plots."""
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -138,13 +130,15 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
     # Discover and sort checkpoints
     ckpt_files = sorted(f for f in os.listdir(ckpt_dir) if f.endswith(".pt"))
     is_reparam = experiment == "reparam"
-    entries: list[dict] = []
+    
+    entries = []
     for fname in ckpt_files:
         m = (_REPARAM_CKPT_RE if is_reparam else _CKPT_RE).match(fname)
         if not m:
             print(f"Skipping unrecognised file: {fname}")
             continue
-        entry: dict = {
+        
+        entry = {
             "fname": fname,
             "path": os.path.join(ckpt_dir, fname),
             "opt": m.group("opt"),
@@ -157,7 +151,6 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
 
     # Accumulate per-seed results grouped by config key (opt/rho[/alpha])
     # so we can average across seeds rather than silently overwriting them.
-    from collections import defaultdict
     traces_by_key: dict[str, list[float]] = defaultdict(list)
 
     for i, e in enumerate(entries, 1):
@@ -173,8 +166,8 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
             max_samples=cfg.get("max_samples"),
         )
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
-        model = _load_checkpoint(e["path"], cfg, device)
-        trace = _compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+        model = load_checkpoint(e["path"], cfg, device)
+        trace = compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
         traces_by_key[key].append(trace)
         del model, test_loader
         gc.collect()
@@ -191,78 +184,9 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
     save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
 
     plots_dir = os.path.join(out_dir, "plots")
-    os.makedirs(plots_dir, exist_ok=True)
-
-    _plot_sharpness_bars(sharpness_all, plots_dir)
+    plot_sharpness_all(sharpness_all, plots_dir)
 
     print(f"\nData saved to {out_dir}/  |  Plots saved to {plots_dir}/")
-
-
-def _opt_from_key(key: str) -> str:
-    return key.split("_rho")[0]
-
-
-def _plot_sharpness_bars(sharpness: dict[str, float], out_dir: str) -> None:
-    keys = list(sharpness.keys())
-    vals = [sharpness[k] for k in keys]
-    colors = [OPT_STYLE.get(_opt_from_key(k), {}).get("color", "#607D8B") for k in keys]
-    labels = [k.replace("_rho", " ρ=") for k in keys]
-
-    fig = go.Figure(go.Bar(
-        x=labels, y=vals,
-        marker_color=colors,
-        text=[f"{v:.6f}" for v in vals],
-        textposition="outside",
-    ))
-    fig.update_layout(
-        title="Hutchinson Sharpness Estimate — All Checkpoints",
-        xaxis_title="Checkpoint",
-        yaxis_title="tr(H) / d  (sharpness)",
-        template="plotly_white",
-    )
-    path = os.path.join(out_dir, "sharpness_bars.html")
-    fig.write_html(path)
-    print(f"Saved → {path}")
-
-    # Also: sharpness vs ρ per optimizer family (line plot)
-    _plot_sharpness_vs_rho(sharpness, out_dir)
-
-
-def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
-    from collections import defaultdict
-    by_opt: dict[str, list] = defaultdict(list)
-    for key, trace in sharpness.items():
-        opt = _opt_from_key(key)
-        rho_str = key.split("rho")[1].split("_")[0]
-        rho = float(rho_str)
-        by_opt[opt].append((rho, trace))
-
-    fig = go.Figure()
-    for opt in ("sam", "msam", "asam", "sgd"):
-        if opt not in by_opt:
-            continue
-        pts = sorted(by_opt[opt])
-        rhos = [p[0] for p in pts]
-        traces_ = [p[1] for p in pts]
-        style = OPT_STYLE.get(opt, {})
-        mode = "markers" if len(rhos) == 1 else "lines+markers"
-        fig.add_trace(go.Scatter(
-            x=rhos, y=traces_, mode=mode,
-            name=opt.upper(),
-            line=dict(color=style.get("color", "gray")),
-            marker=dict(color=style.get("color", "gray"), size=8),
-        ))
-
-    fig.update_layout(
-        title="Sharpness vs ρ (ResNet-18 / CIFAR-10)",
-        xaxis_title="Perturbation radius ρ",
-        yaxis_title="tr(H) / d  (sharpness)",
-        template="plotly_white",
-        legend=dict(x=0.01, y=0.99),
-    )
-    path = os.path.join(out_dir, "sharpness_vs_rho.html")
-    fig.write_html(path)
-    print(f"Saved → {path}")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
