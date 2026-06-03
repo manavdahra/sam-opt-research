@@ -34,10 +34,7 @@ from experiments.utils import (
 
 
 def _apply_reparam(model: nn.Module, model_name: str, alpha: float) -> None:
-    bound = apply_reparam(model, model_name, alpha)
-    if bound is not None:
-        # ViT: log the analytic Taylor deviation bound alongside results
-        print(f"  [ViT reparam] alpha={alpha:.2f}  taylor_bound(x=1)={bound:.6f}")
+    apply_reparam(model, model_name, alpha)
 
 
 def run_single(

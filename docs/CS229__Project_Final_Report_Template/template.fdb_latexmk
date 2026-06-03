@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex template"] 1780438085.44223 "template.aux" "template.bbl" "template" 1780438086.41392 0
+["bibtex template"] 1780495185.09579 "template.aux" "template.bbl" "template" 1780495800.15685 0
   "./acl_natbib.bst" 1780384407.08346 47565 f3595cd7f412e491ea86635a30f7cb0a ""
   "./references.bib" 1780384407.08597 6251 0eba5e4045c6c3cd3a8c5097d1305e5b ""
-  "template.aux" 1780438086.34897 11347 c3173db9411685c69fbb40e7437c9c16 "pdflatex"
+  "template.aux" 1780495800.09215 11177 7773ecee3c2e2c3b7a6e627e18bcfa36 "pdflatex"
   (generated)
   "template.bbl"
   "template.blg"
   (rewritten before read)
-["pdflatex"] 1780438085.45714 "/Users/manavdahra/workspace/sam-opt-research/docs/CS229__Project_Final_Report_Template/template.tex" "template.pdf" "template" 1780438086.41404 0
+["pdflatex"] 1780495799.1621 "/Users/manavdahra/workspace/sam-opt-research/docs/CS229__Project_Final_Report_Template/template.tex" "template.pdf" "template" 1780495800.15699 0
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm" 1136768653 4524 6bce29db5bc272ba5f332261583fee9c ""
@@ -38,11 +38,13 @@
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb" 1248133631 36281 c355509802a035cadc5f15869451dcee ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb" 1248133631 36094 798f80770b3b148ceedd006d487db67c ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb" 1248133631 35752 024fb6c41858982481f6968b5fc26508 ""
+  "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb" 1248133631 31809 8670ca339bf94e56da1fc21c80635e2a ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb" 1248133631 32762 224316ccc9ad3ca0423a14971cfa7fc1 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb" 1248133631 33993 9b89b85fd2d9df0482bd47194d1d3bf3 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1248133631 32569 5e5ddc8df908dea60932f3c484a54c0d ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb" 1248133631 32716 08e384dc442464e7285e891af9f45947 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb" 1248133631 32442 c975af247b6702f7ca0c299af3616b80 ""
+  "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb" 1248133631 34694 ad62b13721ee8eda1dcc8993c8bd7041 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb" 1215737283 169201 9ebf99020dde51a5086e186761a34e8f ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb" 1136849748 44729 811d6c62865936705a31c797a1d5dada ""
   "/Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb" 1136849748 46026 6dab18b61c907687b520c72847215a68 ""
@@ -126,7 +128,7 @@
   "/Users/manavdahra/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1779530191 337043 b595b502e720ef7350e96407faec7046 ""
   "/Users/manavdahra/Library/TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1775471612 2292512 e633e4b331694b166534969300ad5b1f ""
   "/Users/manavdahra/Library/TinyTeX/texmf.cnf" 1775448555 637 edd806fb06a89761a6034e1968af9017 ""
-  "/Users/manavdahra/workspace/sam-opt-research/docs/CS229__Project_Final_Report_Template/template.tex" 1780438084.24331 29038 5aed4fd5256716bd2fd4a9eba92f23a0 ""
+  "/Users/manavdahra/workspace/sam-opt-research/docs/CS229__Project_Final_Report_Template/template.tex" 1780495798.96323 31345 0fe665cba8f570e90b0814a40cc1cdda ""
   "cifar10_samples.png" 1780384407.08406 41943 116ea834c222db89ca6b69f5004bcd39 ""
   "neurips_2019.sty" 1780384407.08575 10439 d224e20fe666d1139ca7eb05a27458c1 ""
   "resnet_asam_loss_curve.png" 1780384407.08664 49213 d40a78c21226170007abb9a877de89f8 ""
@@ -140,10 +142,10 @@
   "resnet_reparam_sharp.png" 1780384407.09222 340005 3899f64ba252df507cc951641e963633 ""
   "resnet_sam_loss_curve.png" 1780384407.09302 46909 b1b22085bbbc9880091ed6f50c7a3906 ""
   "resnet_sgd_loss_curve.png" 1780384407.09332 47615 88fa78d7554275b742967737865c6a99 ""
-  "template.aux" 1780438086.34897 11347 c3173db9411685c69fbb40e7437c9c16 "pdflatex"
-  "template.bbl" 1780438085.45565 2852 a536a3853b3f1e13ac2df05d5bd93753 "bibtex template"
-  "template.out" 1780438086.34974 4992 2f4830585c191be29ffefa1413209d64 "pdflatex"
-  "template.tex" 1780438084.24331 29038 5aed4fd5256716bd2fd4a9eba92f23a0 ""
+  "template.aux" 1780495800.09215 11177 7773ecee3c2e2c3b7a6e627e18bcfa36 "pdflatex"
+  "template.bbl" 1780495185.11206 2852 a536a3853b3f1e13ac2df05d5bd93753 "bibtex template"
+  "template.out" 1780495800.09286 4612 4b13dd8554109d3d19e33ffcd0618731 "pdflatex"
+  "template.tex" 1780495798.96323 31345 0fe665cba8f570e90b0814a40cc1cdda ""
   "vit_asam_loss_curve.png" 1780384407.10211 42316 701963188fdabefb6313b6d6ab27e27d ""
   "vit_asam_slow_convergence_2.png" 1780432026.24159 125675 f79ac0c1e4dd816ba3ba778e8d50df43 ""
   "vit_baseline_convergence.png" 1780384407.10543 92510 48a4f7e2949aef8db7c8288d9793ccb6 ""

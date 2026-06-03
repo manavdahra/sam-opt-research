@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  2 JUN 2026 23:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.4.6)  3 JUN 2026 15:09
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -517,125 +517,125 @@ LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 91
  (/Users/manavdahra/Library/TinyTeX/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 ) [2]
-<./vit_sgd_stuck_2.png, id=161, 471.7625pt x 336.25626pt>
+<./vit_sgd_stuck_2.png, id=157, 471.7625pt x 336.25626pt>
 File: ./vit_sgd_stuck_2.png Graphic file (type png)
 <use ./vit_sgd_stuck_2.png>
 Package pdftex.def Info: ./vit_sgd_stuck_2.png  used on input line 133.
 (pdftex.def)             Requested size: 174.89436pt x 124.65913pt.
-<./vit_asam_slow_convergence_2.png, id=163, 466.74374pt x 334.24875pt>
+<./vit_asam_slow_convergence_2.png, id=159, 466.74374pt x 334.24875pt>
 File: ./vit_asam_slow_convergence_2.png Graphic file (type png)
 <use ./vit_asam_slow_convergence_2.png>
 Package pdftex.def Info: ./vit_asam_slow_convergence_2.png  used on input line 133.
 (pdftex.def)             Requested size: 174.89436pt x 125.24606pt.
-<./vit_sam_slow_convergence_2.png, id=164, 470.75874pt x 333.245pt>
+<./vit_sam_slow_convergence_2.png, id=160, 470.75874pt x 333.245pt>
 File: ./vit_sam_slow_convergence_2.png Graphic file (type png)
 <use ./vit_sam_slow_convergence_2.png>
 Package pdftex.def Info: ./vit_sam_slow_convergence_2.png  used on input line 134.
 (pdftex.def)             Requested size: 174.89436pt x 123.8072pt.
-<./vit_msam_slow_convergence_2.png, id=165, 471.7625pt x 331.2375pt>
+<./vit_msam_slow_convergence_2.png, id=161, 471.7625pt x 331.2375pt>
 File: ./vit_msam_slow_convergence_2.png Graphic file (type png)
 <use ./vit_msam_slow_convergence_2.png>
 Package pdftex.def Info: ./vit_msam_slow_convergence_2.png  used on input line 134.
 (pdftex.def)             Requested size: 174.89436pt x 122.79855pt.
-<./resnet_baseline_convergence.png, id=168, 1903.11pt x 501.875pt>
+<./resnet_baseline_convergence.png, id=164, 1903.11pt x 501.875pt>
 File: ./resnet_baseline_convergence.png Graphic file (type png)
 <use ./resnet_baseline_convergence.png>
 Package pdftex.def Info: ./resnet_baseline_convergence.png  used on input line 144.
 (pdftex.def)             Requested size: 397.48499pt x 104.82251pt.
-<./vit_baseline_convergence.png, id=169, 1903.11pt x 501.875pt>
+<./vit_baseline_convergence.png, id=165, 1903.11pt x 501.875pt>
 File: ./vit_baseline_convergence.png Graphic file (type png)
 <use ./vit_baseline_convergence.png>
 Package pdftex.def Info: ./vit_baseline_convergence.png  used on input line 146.
 (pdftex.def)             Requested size: 397.48499pt x 104.82251pt.
  [3 <./vit_sgd_stuck_2.png> <./vit_asam_slow_convergence_2.png> <./vit_sam_slow_convergence_2.png> <./vit_msam_slow_convergence_2.png>]
-<./resnet_avg_gen_gap.png, id=185, 1903.11pt x 839.135pt>
+<./resnet_avg_gen_gap.png, id=181, 1903.11pt x 839.135pt>
 File: ./resnet_avg_gen_gap.png Graphic file (type png)
 <use ./resnet_avg_gen_gap.png>
 Package pdftex.def Info: ./resnet_avg_gen_gap.png  used on input line 156.
 (pdftex.def)             Requested size: 317.9892pt x 140.20546pt.
  [4 <./resnet_baseline_convergence.png> <./vit_baseline_convergence.png> <./resnet_avg_gen_gap.png>]
-<./resnet_reparam_sgd_sharp.png, id=201, 479.7925pt x 471.7625pt>
+<./resnet_reparam_sgd_sharp.png, id=197, 479.7925pt x 471.7625pt>
 File: ./resnet_reparam_sgd_sharp.png Graphic file (type png)
 <use ./resnet_reparam_sgd_sharp.png>
 Package pdftex.def Info: ./resnet_reparam_sgd_sharp.png  used on input line 168.
 (pdftex.def)             Requested size: 87.44717pt x 85.97896pt.
-<./resnet_reparam_asam_sharp.png, id=202, 426.59375pt x 447.6725pt>
+<./resnet_reparam_asam_sharp.png, id=198, 426.59375pt x 447.6725pt>
 File: ./resnet_reparam_asam_sharp.png Graphic file (type png)
 <use ./resnet_reparam_asam_sharp.png>
 Package pdftex.def Info: ./resnet_reparam_asam_sharp.png  used on input line 168.
 (pdftex.def)             Requested size: 87.44717pt x 91.76662pt.
-<./resnet_reparam_sam_sharp.png, id=203, 427.5975pt x 469.755pt>
+<./resnet_reparam_sam_sharp.png, id=199, 427.5975pt x 469.755pt>
 File: ./resnet_reparam_sam_sharp.png Graphic file (type png)
 <use ./resnet_reparam_sam_sharp.png>
 Package pdftex.def Info: ./resnet_reparam_sam_sharp.png  used on input line 169.
 (pdftex.def)             Requested size: 87.44717pt x 96.06386pt.
-<./resnet_reparam_msam_sharp.png, id=204, 444.66125pt x 458.71375pt>
+<./resnet_reparam_msam_sharp.png, id=200, 444.66125pt x 458.71375pt>
 File: ./resnet_reparam_msam_sharp.png Graphic file (type png)
 <use ./resnet_reparam_msam_sharp.png>
 Package pdftex.def Info: ./resnet_reparam_msam_sharp.png  used on input line 169.
 (pdftex.def)             Requested size: 87.44717pt x 90.20825pt.
  [5 <./resnet_reparam_sgd_sharp.png> <./resnet_reparam_asam_sharp.png> <./resnet_reparam_sam_sharp.png> <./resnet_reparam_msam_sharp.png>]
-<./cifar10_samples.png, id=219, 1076.1003pt x 122.1363pt>
+<./cifar10_samples.png, id=215, 1076.1003pt x 122.1363pt>
 File: ./cifar10_samples.png Graphic file (type png)
 <use ./cifar10_samples.png>
 Package pdftex.def Info: ./cifar10_samples.png  used on input line 195.
 (pdftex.def)             Requested size: 397.48499pt x 45.11331pt.
  [6 <./cifar10_samples.png>] [7]
-<./resnet_sgd_loss_curve.png, id=231, 702.625pt x 451.6875pt>
+<./resnet_sgd_loss_curve.png, id=227, 702.625pt x 451.6875pt>
 File: ./resnet_sgd_loss_curve.png Graphic file (type png)
 <use ./resnet_sgd_loss_curve.png>
-Package pdftex.def Info: ./resnet_sgd_loss_curve.png  used on input line 292.
+Package pdftex.def Info: ./resnet_sgd_loss_curve.png  used on input line 342.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./resnet_asam_loss_curve.png, id=232, 702.625pt x 451.6875pt>
+<./resnet_asam_loss_curve.png, id=228, 702.625pt x 451.6875pt>
 File: ./resnet_asam_loss_curve.png Graphic file (type png)
 <use ./resnet_asam_loss_curve.png>
-Package pdftex.def Info: ./resnet_asam_loss_curve.png  used on input line 292.
+Package pdftex.def Info: ./resnet_asam_loss_curve.png  used on input line 342.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./resnet_sam_loss_curve.png, id=233, 702.625pt x 451.6875pt>
+<./resnet_sam_loss_curve.png, id=229, 702.625pt x 451.6875pt>
 File: ./resnet_sam_loss_curve.png Graphic file (type png)
 <use ./resnet_sam_loss_curve.png>
-Package pdftex.def Info: ./resnet_sam_loss_curve.png  used on input line 293.
+Package pdftex.def Info: ./resnet_sam_loss_curve.png  used on input line 343.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./resnet_msam_loss_curve.png, id=234, 702.625pt x 451.6875pt>
+<./resnet_msam_loss_curve.png, id=230, 702.625pt x 451.6875pt>
 File: ./resnet_msam_loss_curve.png Graphic file (type png)
 <use ./resnet_msam_loss_curve.png>
-Package pdftex.def Info: ./resnet_msam_loss_curve.png  used on input line 293.
+Package pdftex.def Info: ./resnet_msam_loss_curve.png  used on input line 343.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
 
-Overfull \hbox (8.09723pt too wide) in paragraph at lines 291--295
+Overfull \hbox (8.09723pt too wide) in paragraph at lines 341--345
 [][] 
  []
 
-<./vit_sgd_loss_curve.png, id=235, 702.625pt x 451.6875pt>
+<./vit_sgd_loss_curve.png, id=231, 702.625pt x 451.6875pt>
 File: ./vit_sgd_loss_curve.png Graphic file (type png)
 <use ./vit_sgd_loss_curve.png>
-Package pdftex.def Info: ./vit_sgd_loss_curve.png  used on input line 301.
+Package pdftex.def Info: ./vit_sgd_loss_curve.png  used on input line 351.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./vit_asam_loss_curve.png, id=236, 702.625pt x 451.6875pt>
+<./vit_asam_loss_curve.png, id=232, 702.625pt x 451.6875pt>
 File: ./vit_asam_loss_curve.png Graphic file (type png)
 <use ./vit_asam_loss_curve.png>
-Package pdftex.def Info: ./vit_asam_loss_curve.png  used on input line 301.
+Package pdftex.def Info: ./vit_asam_loss_curve.png  used on input line 351.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./vit_sam_loss_curve.png, id=237, 702.625pt x 451.6875pt>
+<./vit_sam_loss_curve.png, id=233, 702.625pt x 451.6875pt>
 File: ./vit_sam_loss_curve.png Graphic file (type png)
 <use ./vit_sam_loss_curve.png>
-Package pdftex.def Info: ./vit_sam_loss_curve.png  used on input line 302.
+Package pdftex.def Info: ./vit_sam_loss_curve.png  used on input line 352.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
-<./vit_msam_loss_curve.png, id=238, 702.625pt x 451.6875pt>
+<./vit_msam_loss_curve.png, id=234, 702.625pt x 451.6875pt>
 File: ./vit_msam_loss_curve.png Graphic file (type png)
 <use ./vit_msam_loss_curve.png>
-Package pdftex.def Info: ./vit_msam_loss_curve.png  used on input line 302.
+Package pdftex.def Info: ./vit_msam_loss_curve.png  used on input line 352.
 (pdftex.def)             Requested size: 190.79109pt x 122.65335pt.
 
-Overfull \hbox (8.09723pt too wide) in paragraph at lines 300--304
+Overfull \hbox (8.09723pt too wide) in paragraph at lines 350--354
 [][] 
  []
 
 [8 <./resnet_sgd_loss_curve.png> <./resnet_asam_loss_curve.png> <./resnet_sam_loss_curve.png> <./resnet_msam_loss_curve.png>]
-<./resnet_reparam_sharp.png, id=249, 1039.885pt x 1043.9pt>
+<./resnet_reparam_sharp.png, id=247, 1039.885pt x 1043.9pt>
 File: ./resnet_reparam_sharp.png Graphic file (type png)
 <use ./resnet_reparam_sharp.png>
-Package pdftex.def Info: ./resnet_reparam_sharp.png  used on input line 327.
+Package pdftex.def Info: ./resnet_reparam_sharp.png  used on input line 377.
 (pdftex.def)             Requested size: 357.73405pt x 359.11052pt.
  [9 <./vit_sgd_loss_curve.png> <./vit_asam_loss_curve.png> <./vit_sam_loss_curve.png> <./vit_msam_loss_curve.png>] (./template.bbl [10 <./resnet_reparam_sharp.png>]) [11] (./template.aux)
  ***********
@@ -647,21 +647,21 @@ L3 programming layer <2026-03-20>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `template.out' has not changed.
-(rerunfilecheck)             Checksum: 2F4830585C191BE29FFEFA1413209D64;4992.
+(rerunfilecheck)             Checksum: 4B13DD8554109D3D19E33FFCD0618731;4612.
  ) 
 Here is how much of TeX's memory you used:
- 15357 strings out of 469296
- 252839 string characters out of 5464032
- 792963 words of memory out of 5000000
- 43696 multiletter control sequences out of 15000+600000
- 672828 words of font info for 231 fonts, out of 8000000 for 9000
+ 15359 strings out of 469296
+ 252804 string characters out of 5464032
+ 793962 words of memory out of 5000000
+ 43693 multiletter control sequences out of 15000+600000
+ 673085 words of font info for 235 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 75i,12n,79p,1234b,497s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on template.pdf (11 pages, 1501549 bytes).
+ 75i,13n,79p,1234b,497s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></Users/manavdahra/Library/TinyTeX/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on template.pdf (11 pages, 1521827 bytes).
 PDF statistics:
- 355 PDF objects out of 1000 (max. 8388607)
- 269 compressed objects within 3 object streams
- 60 named destinations out of 1000 (max. 500000)
- 47418 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 361 PDF objects out of 1000 (max. 8388607)
+ 271 compressed objects within 3 object streams
+ 59 named destinations out of 1000 (max. 500000)
+ 47410 words of extra memory for PDF output out of 51595 (max. 10000000)
 

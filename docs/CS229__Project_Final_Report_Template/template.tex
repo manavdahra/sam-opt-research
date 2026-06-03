@@ -59,7 +59,7 @@
 \maketitle
 
 \begin{abstract}
-We study whether the generalisation benefits of Sharpness-Aware Minimization (SAM) variants survive function-preserving weight reparametrisation. Training ResNet-18 and ViT-B/32 on CIFAR-10, we compare SGD, SAM, ASAM, and Monge SAM (M-SAM) across two initialisation scales, three perturbation radii, and three random seeds, evaluating convergence speed, generalisation gap, and loss-landscape curvature. M-SAM consistently dominates on all metrics, with its advantage growing on the more complex ViT-B/32 architecture. The results confirm that geometry-aware, reparametrisation-invariant perturbations yield measurably better optimisation than Euclidean or diagonal-scaling alternatives.
+We do a comparative study of Sharpness-Aware Minimization (SAM) variants under function-preserving weight reparametrisation. Training ResNet-18 and ViT-B/32 on CIFAR-10, we compare SGD, SAM, ASAM, and Monge SAM (M-SAM) across two initialisation scales, three perturbation radii, and three random seeds, evaluating convergence speed, generalisation gap, and loss-landscape curvature. M-SAM consistently dominates on all metrics, with its advantage growing on the more complex ViT-B/32 architecture. The results confirm that geometry-aware, reparametrisation-invariant perturbations yield measurably better optimisation than Euclidean or diagonal-scaling alternatives.
 \end{abstract}
 
 
@@ -97,7 +97,7 @@ We structure our experiments in three stages:
 
 For each BasicBlock in ResNet-18 we reparametrize it by injecting a positive scaling factor $\alpha$ at Batch normalisation layer (BN1) and compensating with $1/\alpha$ at Convolution layer (conv2), yielding a chain which preserves the function computed by the block. See Appendix~\ref{appendix:reparametrization} for more details.
 
-For ViT-B/32, we target the MLP sub-block of each transformer layer. Since GELU is not positively homogeneous, it does not satisfy $f(\alpha x)=\alpha f(x)$ and naively scaling linear weights by $\alpha$ does not preserve the block's output. We resolve this problem by replacing each GELU with its first-order Taylor approximation at zero, $f(x)\approx 0.5x$, which is positively homogeneous. Under this linearised activation, scaling \texttt{linear1} by $\alpha$ and \texttt{linear2} by $1/\alpha$ leaves the block output unchanged. See Appendix~\ref{appendix:gelu_taylor_approx} for the derivation of this approximation.
+For ViT-B/32, we target the pre-MLP LayerNorm of each transformer encoder block. Since GELU is not positively homogeneous — $\text{GELU}(\alpha x)\neq\alpha\,\text{GELU}(x)$ — crossing the activation boundary breaks the invariance. We therefore place the scale injection entirely on the linear side of the LayerNorm. Scaling $\texttt{ln\_2}.\gamma$ and $\texttt{ln\_2}.\beta$ by $\alpha$ multiplies the LayerNorm output by $\alpha$ exactly, and compensating with $1/\alpha$ on $\texttt{linear1.weight}$ restores the block output to its original value. GELU is never touched. See Appendix~\ref{appendix:layernorm_reparam} for the derivation and for a discussion of why the na\"ive GELU Taylor-linearisation approach was rejected.
 
 \subsection{Training loop and optimisers implementation}
 All optimisers share a single training loop; only the perturbation $\hat{\epsilon}$ computation differs, as summarised in Table~\ref{tab:perturbations}. We use PyTorch's built-in SGD directly, and wrap it with a two-step closure for SAM, ASAM, and M-SAM following the update rules in the respective papers. All other training details—learning rate, batch size, augmentation—are held fixed across optimisers to isolate the effect of the perturbation strategy. Experiments were run on four NVIDIA RTX 4090 GPUs; see Appendix~\ref{appendix:infrastructure} for infrastructure details and Appendix~\ref{appendix:hyperparameters} for the full hyper-parameter grid.
@@ -276,17 +276,67 @@ We need to be careful when reparametrising a layer before Batch normalisation (B
 
 To get around this issue, we inject the scaling factor $\alpha$ at the output of BN1, which is then propagated through the ReLU activation. We compensate for this by applying a corresponding $1/\alpha$ scaling at conv2, ensuring that the overall function computed by the block remains unchanged.
 
-\label{appendix:gelu_taylor_approx}
-\subsection{GELU linearisation for ViT reparametrization}
-The MLP sub-block of each transformer layer in ViT-B/32 consists of two linear layers with a GELU activation in between. Since GELU is not positively homogeneous, we cannot simply scale the first linear layer by $\alpha$ and the second by $1/\alpha$ without changing the block's output. To preserve the function under scaling, we replace GELU with its first-order Taylor approximation around zero, which is positively homogeneous. The Taylor approximation of GELU activation function around zero is given by:
-\begin{align*}
-  \text{GELU}(x) &= 0.5 x (1 + \text{tanh}(\sqrt{2/\pi}(x + 0.044715 x^3)))\\
-  &\approx 0.5 x (1 + \text{tanh}(\sqrt{2/\pi} x)) \\
-  &\approx 0.5 x (1 + \sqrt{2/\pi} x)\\
-  &= 0.5 x \quad \text{for small } x
-\end{align*}
+\label{appendix:layernorm_reparam}
+\subsection{ViT reparametrisation via LayerNorm scaling}
 
-\subsection{ResNet loss curves for baseline and reparametrized settings}
+\textbf{Why the na\"ive GELU Taylor approach fails.}
+The MLP sub-block of each transformer encoder block has the structure
+$\text{linear}_1 \to \text{GELU} \to \text{linear}_2$.
+A natural attempt is to replace GELU with its first-order Taylor approximation at zero,
+$f(x)\approx 0.5x$, which is positively homogeneous ($f(\alpha x)=\alpha f(x)$), and then scale
+$\text{linear}_1$ by $\alpha$ and $\text{linear}_2$ by $1/\alpha$.
+While this achieves exact output preservation under the linearised activation, it
+\emph{removes all nonlinearity from every MLP block}: the 12 encoder layers each
+collapse to a composition of linear maps, reducing the full model to a deep linear
+network. In practice this causes training accuracy to stagnate at the random-chance
+level ($\approx 0.10$--$0.20$ on CIFAR-10 with 10 classes), making the approach
+unsuitable for any experiment that involves training.
+
+\textbf{LayerNorm-based exact reparametrisation.}
+The correct strategy places the scale injection entirely within the linear
+LayerNorm $\to$ Linear boundary, leaving GELU untouched.
+For each encoder block, LayerNorm computes
+\[
+  y = \gamma \hat{x} + \beta, \qquad \hat{x} = \frac{x - \mu}{\sigma}
+\]
+where $\gamma,\beta\in\mathbb{R}^d$ are learnable affine parameters.
+Scaling both by $\alpha$ gives $y' = \alpha y$ exactly, since the operation is linear
+in the affine parameters. Compensating with $1/\alpha$ on $W_1$ (the weight matrix of
+$\text{linear}_1$) then restores the block output:
+\[
+  W_1' \cdot y' + b_1 = \tfrac{1}{\alpha}W_1 \cdot \alpha y + b_1 = W_1 y + b_1.
+\]
+The bias $b_1$ is left unchanged because it is added after the weight--input product and
+does not depend on the scaled LayerNorm output. The full in-place transform for each
+encoder block is therefore:
+\[
+  \gamma \leftarrow \alpha\gamma, \qquad
+  \beta  \leftarrow \alpha\beta, \qquad
+  W_1   \leftarrow \tfrac{1}{\alpha}W_1.
+\]
+This transform is exact for any $\alpha>0$, requires no activation substitution, and
+preserves both training dynamics and GELU nonlinearity.
+
+\textbf{ViT encoder block computation chain.}
+The diagram below traces the MLP sub-block path, marking where the reparametrisation
+injects $\alpha$ and $1/\alpha$:
+
+\[
+  \hdots
+  \xrightarrow{\;\mathrm{LN}_2\;}
+  \xrightarrow{\;\times\alpha\;(\gamma,\beta)}
+  \xrightarrow{\;\mathrm{Linear}_1\;}
+  \xrightarrow{\;\times\tfrac{1}{\alpha}\;(W_1)}
+  \xrightarrow{\;\mathrm{GELU}\;}
+  \xrightarrow{\;\mathrm{Linear}_2\;}
+  \xrightarrow{\;+\,x_1\;}
+  \hdots
+\]
+
+The two annotations cancel exactly at the $\mathrm{Linear}_1$ input:
+$\frac{1}{\alpha}W_1 \cdot \alpha\,\mathrm{LN}_2(x_1) = W_1\,\mathrm{LN}_2(x_1)$,
+leaving $x_2$ unchanged.
+The attention sub-block ($\mathrm{LN}_1 \to \mathrm{MHA}$) is unmodified for baseline and reparametrized settings.
 \begin{figure}[H]
   \begin{tabular}{cc}
     \includegraphics[width=0.48\textwidth]{./resnet_sgd_loss_curve.png} & \includegraphics[width=0.48\textwidth]{./resnet_asam_loss_curve.png} \\
@@ -337,7 +387,7 @@ Below are the additional 2D loss landscapes for ResNet-18 under different optimi
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{Literature review.} Surveyed the SAM, ASAM, and M-SAM papers, as well as the Dinh et al.\ reparametrisation critique, to motivate the experimental design.
   \item \textbf{Codebase and infrastructure.} Built the full training pipeline in PyTorch, including data loading (HuggingFace Datasets), model wrappers for ResNet-18 and ViT-B/32, and implementations of SGD, SAM, ASAM, and M-SAM optimisers.
-  \item \textbf{Reparametrisation implementation.} Derived and implemented function-preserving weight rescaling for ResNet-18 (BN/conv chain) and for ViT-B/32 (GELU Taylor approximation + MLP linear scaling), with unit tests verifying correctness.
+  \item \textbf{Reparametrisation implementation.} Derived and implemented function-preserving weight rescaling for ResNet-18 (BN/conv chain) and for ViT-B/32 (LayerNorm affine scaling + compensating $1/\alpha$ on \texttt{linear1}). Identified and rejected a na\"ive GELU Taylor-linearisation approach that eliminated all MLP nonlinearity and caused training accuracy to collapse to random chance; replaced it with the exact LayerNorm-boundary transform. Verified correctness with unit tests.
   \item \textbf{Experiment execution.} Ran the full hyper-parameter grid ($4$ optimisers $\times$ $3$ $\rho$ values $\times$ $3$ seeds $\times$ $2$ $\alpha$ settings $\times$ $2$ architectures) and managed result logging.
   \item \textbf{Analysis and visualisation.} Computed convergence speed (epochs, GFLOPs, wall-clock time), generalisation gap, Hutchinson curvature estimates, and 2D loss-landscape plots using filter normalisation; produced all figures in the report.
   \item \textbf{Report writing.} Wrote all sections of this report, including motivation, background, methods, results, and conclusion.

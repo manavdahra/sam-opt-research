@@ -4,11 +4,8 @@ import torch
 import torch.nn as nn
 
 from src.models.vit import (
-    _TaylorGELU,
-    _replace_gelu_with_taylor,
     get_vit_b_32,
-    apply_mlp_reparam_taylor,
-    measure_reparam_deviation,
+    apply_layernorm_reparam,
 )
 from src.analysis.reparam import apply_reparam
 
@@ -27,108 +24,6 @@ def dummy_input():
 
 
 # ---------------------------------------------------------------------------
-# apply_mlp_reparam_taylor — returns analytic bound
-# ---------------------------------------------------------------------------
-
-def test_taylor_reparam_returns_zero_for_alpha1(vit_model):
-    import copy
-    bound = apply_mlp_reparam_taylor(copy.deepcopy(vit_model), alpha=1.0)
-    assert bound == 0.0
-
-
-@pytest.mark.parametrize("alpha", [0.5, 2.0, 10.0])
-def test_taylor_bound_formula(vit_model, alpha):
-    """Returned bound should equal 0.4255 * |alpha - 1|."""
-    import copy
-    bound = apply_mlp_reparam_taylor(copy.deepcopy(vit_model), alpha=alpha)
-    expected = (1.702 / 4.0) * abs(alpha - 1.0)
-    assert abs(bound - expected) < 1e-9, f"bound={bound}, expected={expected}"
-
-
-@pytest.mark.parametrize("alpha", [0.5, 2.0])
-def test_taylor_bound_grows_with_alpha_distance(vit_model, alpha):
-    """Bound should grow as alpha moves further from 1."""
-    import copy
-    bound_near = apply_mlp_reparam_taylor(copy.deepcopy(vit_model), alpha=1.1)
-    bound_far = apply_mlp_reparam_taylor(copy.deepcopy(vit_model), alpha=alpha)
-    assert bound_far > bound_near
-
-
-def test_taylor_reparam_applies_weights(vit_model):
-    """Taylor variant must actually scale the weights (delegates to apply_mlp_reparam)."""
-    import copy
-    alpha = 3.0
-    model_reparam = copy.deepcopy(vit_model)
-    apply_mlp_reparam_taylor(model_reparam, alpha=alpha)
-
-    for (orig_block, reparam_block) in zip(
-        vit_model.encoder.layers.children(),
-        model_reparam.encoder.layers.children(),
-    ):
-        orig_linears = [m for m in orig_block.mlp.children() if isinstance(m, nn.Linear)]
-        reparam_linears = [m for m in reparam_block.mlp.children() if isinstance(m, nn.Linear)]
-        if len(orig_linears) < 2:
-            continue
-        assert torch.allclose(reparam_linears[0].weight, orig_linears[0].weight * alpha)
-        assert torch.allclose(reparam_linears[1].weight, orig_linears[1].weight / alpha)
-
-
-def test_taylor_reparam_replaces_gelu(vit_model):
-    """All GELU activations in MLP blocks must be replaced with _TaylorGELU."""
-    import copy
-    model = copy.deepcopy(vit_model)
-    apply_mlp_reparam_taylor(model, alpha=3.0)
-
-    for block in model.encoder.layers.children():
-        mlp = getattr(block, "mlp", None)
-        if mlp is None:
-            continue
-        for child in mlp:
-            assert not isinstance(child, nn.GELU), "nn.GELU still present after reparam"
-            if isinstance(child, _TaylorGELU):
-                break
-        else:
-            pytest.fail("No _TaylorGELU found in MLP block after reparam")
-
-
-@pytest.mark.parametrize("alpha", [0.5, 2.0, 5.0])
-def test_taylor_reparam_is_function_preserving(vit_model, dummy_input, alpha):
-    """Weight scaling must preserve output when the activation is TaylorGELU.
-
-    Both the baseline and reparametrised model must use TaylorGELU — comparing
-    against the original GELU model is wrong because the activation itself changes.
-    """
-    import copy
-    # Baseline: TaylorGELU, unscaled weights
-    model_base = copy.deepcopy(vit_model)
-    _replace_gelu_with_taylor(model_base)
-    # Reparametrised: TaylorGELU, scaled weights
-    model_reparam = copy.deepcopy(vit_model)
-    apply_mlp_reparam_taylor(model_reparam, alpha=alpha)
-
-    with torch.no_grad():
-        out_base = model_base(dummy_input)
-        out_reparam = model_reparam(dummy_input)
-    assert torch.allclose(out_base, out_reparam, atol=1e-4), (
-        f"alpha={alpha}: max diff={(out_base - out_reparam).abs().max().item():.6f}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# measure_reparam_deviation — empirical output diff
-# ---------------------------------------------------------------------------
-
-def test_measure_deviation_noop(vit_model, dummy_input):
-    dev = measure_reparam_deviation(vit_model, dummy_input, alpha=1.0)
-    assert dev == 0.0
-
-
-def test_measure_deviation_grows_with_alpha(vit_model, dummy_input):
-    dev_small = measure_reparam_deviation(vit_model, dummy_input, alpha=1.5)
-    dev_large = measure_reparam_deviation(vit_model, dummy_input, alpha=5.0)
-    assert dev_large > dev_small
-
-
 # ---------------------------------------------------------------------------
 # apply_reparam facade
 # ---------------------------------------------------------------------------
@@ -140,13 +35,68 @@ def test_facade_resnet18_returns_none():
     assert result is None
 
 
-def test_facade_vit_returns_float(vit_model):
+def test_facade_vit_returns_none(vit_model):
     import copy
     result = apply_reparam(copy.deepcopy(vit_model), "vit_b_32", alpha=2.0)
-    assert isinstance(result, float)
-    assert result > 0.0
+    assert result is None
 
 
 def test_facade_unknown_model_raises(vit_model):
     with pytest.raises(ValueError, match="Unknown model"):
         apply_reparam(vit_model, "unknown_arch", alpha=2.0)
+
+
+# ---------------------------------------------------------------------------
+# apply_layernorm_reparam — exact function-preserving reparametrisation
+# ---------------------------------------------------------------------------
+
+def test_layernorm_reparam_noop_for_alpha1(vit_model):
+    import copy
+    model = copy.deepcopy(vit_model)
+    # Capture original ln_2 weights
+    orig_weights = [
+        block.ln_2.weight.clone()
+        for block in model.encoder.layers.children()
+    ]
+    apply_layernorm_reparam(model, alpha=1.0)
+    for block, orig_w in zip(model.encoder.layers.children(), orig_weights):
+        assert torch.equal(block.ln_2.weight, orig_w)
+
+
+def test_layernorm_reparam_scales_ln2_and_linear1(vit_model):
+    """ln_2.weight/bias must be scaled by alpha; linear1.weight by 1/alpha."""
+    import copy
+    alpha = 3.0
+    model_orig = copy.deepcopy(vit_model)
+    model_reparam = copy.deepcopy(vit_model)
+    apply_layernorm_reparam(model_reparam, alpha=alpha)
+
+    for orig_block, reparam_block in zip(
+        model_orig.encoder.layers.children(),
+        model_reparam.encoder.layers.children(),
+    ):
+        assert torch.allclose(reparam_block.ln_2.weight, orig_block.ln_2.weight * alpha)
+        assert torch.allclose(reparam_block.ln_2.bias, orig_block.ln_2.bias * alpha)
+        orig_l1 = [m for m in orig_block.mlp.children() if isinstance(m, nn.Linear)][0]
+        reparam_l1 = [m for m in reparam_block.mlp.children() if isinstance(m, nn.Linear)][0]
+        assert torch.allclose(reparam_l1.weight, orig_l1.weight / alpha)
+        # linear1.bias must be unchanged
+        assert torch.allclose(reparam_l1.bias, orig_l1.bias)
+
+
+@pytest.mark.parametrize("alpha", [0.5, 2.0, 5.0, 10.0])
+def test_layernorm_reparam_is_exactly_function_preserving(vit_model, dummy_input, alpha):
+    """The LayerNorm-based reparam must not change model output at all."""
+    import copy
+    model_orig = copy.deepcopy(vit_model)
+    model_reparam = copy.deepcopy(vit_model)
+    apply_layernorm_reparam(model_reparam, alpha=alpha)
+
+    model_orig.eval()
+    model_reparam.eval()
+    with torch.no_grad():
+        out_orig = model_orig(dummy_input)
+        out_reparam = model_reparam(dummy_input)
+    assert torch.allclose(out_orig, out_reparam, atol=1e-4), (
+        f"alpha={alpha}: max diff={(out_orig - out_reparam).abs().max().item():.6f}"
+    )
