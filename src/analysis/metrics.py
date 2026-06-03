@@ -36,10 +36,6 @@ def aggregate_seeds(
     return result
 
 
-# ---------------------------------------------------------------------------
-# Convergence-rate helpers (Priority 2)
-# ---------------------------------------------------------------------------
-
 def epochs_to_threshold(acc_curve: list[float], tau: float) -> int | None:
     """First epoch (1-indexed) where validation accuracy >= tau.
 

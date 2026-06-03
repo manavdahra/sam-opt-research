@@ -4,11 +4,11 @@ Re-exports the model-specific functions and provides a unified
 ``apply_reparam`` dispatcher used by experiment scripts.
 
 ResNet-18 (exact):
-    ReLU is 1-homogeneous → scaling BN1/conv1 output by α and compensating
-    conv2's input by 1/α preserves the network function exactly.
+    ReLU is 1-homogeneous → scaling BN1/conv1 output by alpha and compensating
+    conv2's input by 1/alpha preserves the network function exactly.
 
 ViT-B/32 (exact):
-    Scales ln_2 affine parameters (γ, β) by α and mlp.linear1.weight by 1/α.
+    Scales ln_2 affine parameters (gamma, beta) by alpha and mlp.linear1.weight by 1/alpha.
     The transform crosses only the linear LayerNorm → Linear1 boundary;
     GELU is never touched, so no homogeneity assumption is required.
 """
@@ -34,10 +34,10 @@ def apply_reparam(model: nn.Module, model_name: str, alpha: float) -> None:
 
     Both ResNet-18 and ViT-B/32 transforms are now exact and function-preserving:
 
-    - ResNet-18: scales BN1 affine params by α and conv2.weight by 1/α.
+    - ResNet-18: scales BN1 affine params by alpha and conv2.weight by 1/alpha.
       Exact because ReLU is 1-homogeneous.
-    - ViT-B/32: scales ln_2 affine params (γ, β) by α and mlp.linear1.weight
-      by 1/α.  Exact because the transform crosses only a linear boundary
+    - ViT-B/32: scales ln_2 affine params (gamma, beta) by alpha and mlp.linear1.weight
+      by 1/alpha.  Exact because the transform crosses only a linear boundary
       (LayerNorm → Linear); GELU is never touched.
 
     Args:

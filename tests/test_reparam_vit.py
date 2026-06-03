@@ -23,11 +23,6 @@ def dummy_input():
     return torch.randn(2, 3, 224, 224)
 
 
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# apply_reparam facade
-# ---------------------------------------------------------------------------
-
 def test_facade_resnet18_returns_none():
     from src.models.resnet18 import get_resnet18
     model = get_resnet18(num_classes=10)
@@ -45,10 +40,6 @@ def test_facade_unknown_model_raises(vit_model):
     with pytest.raises(ValueError, match="Unknown model"):
         apply_reparam(vit_model, "unknown_arch", alpha=2.0)
 
-
-# ---------------------------------------------------------------------------
-# apply_layernorm_reparam — exact function-preserving reparametrisation
-# ---------------------------------------------------------------------------
 
 def test_layernorm_reparam_noop_for_alpha1(vit_model):
     import copy

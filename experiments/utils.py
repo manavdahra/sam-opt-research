@@ -43,7 +43,6 @@ def build_model(cfg: dict, device: torch.device) -> nn.Module:
     if model_name == "resnet18":
         from src.models.resnet18 import get_resnet18
         model = get_resnet18(num_classes=10)
-    # ViT experiments are disabled pending resolution of GELU reparam approximation issues.
     elif model_name == "vit_b_32":
         from src.models.vit import get_vit_b_32
         model = get_vit_b_32(num_classes=10, pretrained=cfg.get("pretrained", True))
@@ -102,8 +101,6 @@ def save_results(path: str, data: dict | list) -> None:
     print(f"Saved → {path}")
 
 
-# ── Run-directory helpers ────────────────────────────────────────────────────
-
 def make_run_id(model: str, opt_type: str, rho: float, seed: int, suffix: str = "") -> str:
     """Return a unique, descriptive run identifier.
 
@@ -146,7 +143,7 @@ def write_run_dir(
 
 
 def update_index(results_root: str, run_id: str, meta: dict) -> None:
-    """Append a run entry to results/index.json (atomic read-modify-write).
+    """Append a run entry to results/index.json.
 
     The index is the single source of truth for querying runs, e.g.:
         "all SAM runs on resnet18 with rho=0.05"

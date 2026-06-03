@@ -1,13 +1,12 @@
 """Visualize baseline results from baseline_results.json.
 
 Produces three interactive HTML figures saved alongside the JSON:
-  1. baseline_accuracy.html  — test accuracy vs ρ per optimizer family
-  2. baseline_gen_gap.html   — generalization gap per optimizer/ρ
-  3. baseline_summary.html   — best-ρ accuracy + gen-gap side by side
+  1. baseline_accuracy.html  — test accuracy vs rho per optimizer family
+  2. baseline_gen_gap.html   — generalization gap per optimizer/rho
+  3. baseline_summary.html   — best-rho accuracy + gen-gap side by side
 
 Usage:
-    uv run python experiments/plot_baseline.py \
-        --results results/experiments/baseline/resnet18/baseline_results.json
+    uv run python experiments/plot_baseline.py --results results/experiments/baseline/resnet18/baseline_results.json
 """
 from __future__ import annotations
 
@@ -23,12 +22,12 @@ if _ROOT not in sys.path:
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# ── colour / symbol map ──────────────────────────────────────────────────────
+# Plotly Colormap for optimizers
 OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#9E9E9E", "symbol": "diamond",  "label": "SGD"},
-    "sam":  {"color": "#2196F3", "symbol": "circle",   "label": "SAM"},
-    "asam": {"color": "#FF9800", "symbol": "triangle-up", "label": "ASAM"},
-    "msam": {"color": "#4CAF50", "symbol": "square",   "label": "M-SAM"},
+    "sgd":  {"color": "#7B8794", "symbol": "diamond",     "label": "SGD"},
+    "sam":  {"color": "#4878CF", "symbol": "circle",      "label": "SAM"},
+    "asam": {"color": "#C8703A", "symbol": "triangle-up", "label": "ASAM"},
+    "msam": {"color": "#3D8C6E", "symbol": "square",      "label": "M-SAM"},
 }
 
 
@@ -41,12 +40,11 @@ def _summary(entry: dict) -> dict:
     return entry["summary"]
 
 
-# ── Figure 1: test accuracy vs ρ ─────────────────────────────────────────────
-
 def plot_accuracy(data: list[dict], out_dir: str) -> None:
+    """Plot test accuracy vs rho for all optimizers, with SGD as a horizontal dashed reference line."""
     fig = go.Figure()
 
-    # SGD — horizontal dashed reference
+    # We plot SGD as horizontal dashed line for reference
     sgd = next(s for s in data if _summary(s)["optimizer"] == "sgd")
     sgd_acc = _summary(sgd)["test_acc_mean"]
     fig.add_hline(
@@ -57,7 +55,7 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
         annotation_position="top right",
     )
 
-    # SAM, ASAM & MSAM — line plots over ρ
+    # Line plot Test accuracy for SAM, ASAM & MSAM
     for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
@@ -75,7 +73,7 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
 
     fig.update_layout(
         title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
-        xaxis_title="Perturbation radius ρ",
+        xaxis_title="Perturbation radius rho",
         yaxis_title="Test accuracy",
         yaxis_tickformat=".4f",
         template="plotly_white",
@@ -91,16 +89,14 @@ def plot_accuracy(data: list[dict], out_dir: str) -> None:
     print(f"Saved → {png_path}")
 
 
-# ── Figure 2: generalization gap vs optimizer/ρ ──────────────────────────────
-
 def plot_gen_gap(data: list[dict], out_dir: str) -> None:
     fig = make_subplots(
         rows=1, cols=2,
         column_widths=[0.6, 0.4],
-        subplot_titles=["Gen. Gap vs ρ", "Best ρ per Optimizer"],
+        subplot_titles=["Gen. Gap vs rho", "Best rho per Optimizer"],
     )
 
-    # Left: SAM, ASAM & MSAM line plots
+    # Line plots for generalization gap over rho, with SGD as horizontal dashed reference
     for opt in ("sam", "asam", "msam"):
         rows = sorted(
             [s for s in data if _summary(s)["optimizer"] == opt],
@@ -127,7 +123,7 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
         row=1, col=1,
     )
 
-    # Right: best-ρ bar chart
+    # Bar chart for best-rho per optimizer
     best_labels, best_gaps, best_colors = [], [], []
     for opt in ("sgd", "sam", "msam", "asam"):
         rows_ = [s for s in data if _summary(s)["optimizer"] == opt]
@@ -137,7 +133,7 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
         label = OPT_STYLE[opt]["label"]
         gap = _summary(best_entry)["divergence_rate_mean"]
         rho = _summary(best_entry)["rho"]
-        best_labels.append(f"{label}<br>(ρ={rho})")
+        best_labels.append(f"{label}<br>(rho={rho})")
         best_gaps.append(gap)
         best_colors.append(OPT_STYLE[opt]["color"])
 
@@ -164,9 +160,8 @@ def plot_gen_gap(data: list[dict], out_dir: str) -> None:
     print(f"Saved → {png_path}")
 
 
-# ── Figure 3: summary — best accuracy + generalization gap side by side ─────────────────
-
 def plot_summary(data: list[dict], out_dir: str) -> None:
+    """Bar charts comparing best-rho test accuracy and gen-gap per optimizer."""
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=["Avg Test Accuracy per Optimizer", "Avg Generalization Gap per Optimizer"],
@@ -204,8 +199,6 @@ def plot_summary(data: list[dict], out_dir: str) -> None:
     fig.write_html(path)
     print(f"Saved → {path}")
 
-
-# ── main ──────────────────────────────────────────────────────────────────────
 
 def main(results_path: str, out_dir: str | None = None) -> None:
     data = load_results(results_path)

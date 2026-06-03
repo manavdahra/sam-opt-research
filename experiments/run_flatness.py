@@ -1,9 +1,9 @@
-"""Experiment 3 — Flatness / sharpness analysis.
+"""Experiment 3 — Sharpness analysis (Hutchinson trace estimate).
 
-Loads a trained model checkpoint (or trains a fresh one if no checkpoint is
-provided) and computes:
-  1. Hutchinson trace estimate (tr(H)/d) — sharpness proxy.
-  2. 2D loss landscape along a random filter-normalized direction.
+Loads a trained model checkpoint (or a directory of checkpoints) and computes
+the Hutchinson trace estimate tr(H)/d as a sharpness proxy.
+
+For 2D loss landscape visualisation see experiments/plot_landscape.py.
 
 Single-checkpoint mode:
     python experiments/run_flatness.py --config configs/resnet18_baseline.yaml \
@@ -31,11 +31,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from src.data.cifar10 import get_cifar10_loaders
 from src.analysis.hutchinson import hutchinson_trace
-from src.analysis.landscape import loss_landscape_2d, plot_loss_landscape_2d
 from experiments.utils import get_device, set_seed, build_model, save_results
 
 # Filename pattern: <opt>_rho<rho>_seed<seed>.pt
@@ -59,23 +57,18 @@ def _load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
     return model
 
 
-def _analyse_one(
-    name: str,
+def _compute_sharpness(
     model: nn.Module,
     loss_fn: nn.Module,
     test_loader,
     device: torch.device,
     n_samples: int = 20,
     max_batch: int = 64,
-) -> tuple[float, list, list, list]:
-    """Returns (trace, alphas_list, betas_list, losses_2d_list).
-
-    Hutchinson trace is measured on test data; landscape on test data.
-    """
+) -> float:
+    """Returns the Hutchinson trace estimate tr(H)/d."""
     trace = hutchinson_trace(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
     print(f"  tr(H)/d = {trace:.6f}")
-    alphas, betas, losses = loss_landscape_2d(model, loss_fn, test_loader, device, steps=31, range_=2.5)
-    return trace, alphas.tolist(), betas.tolist(), losses.tolist()
+    return trace
 
 
 # ── single-checkpoint mode ───────────────────────────────────────────────────
@@ -123,19 +116,13 @@ def main_single(config_path: str, checkpoint: str, seed: int, out_dir: str, n_sa
     name = os.path.basename(checkpoint)
     print(f"\nAnalysing: {name}")
     model = _load_checkpoint(checkpoint, cfg, device)
-    trace, alphas, betas, losses = _analyse_one(name, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+    trace = _compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
 
     plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)
     save_results(os.path.join(out_dir, "sharpness.json"), {name: trace})
-    save_results(os.path.join(out_dir, "landscape.json"), {name: (alphas, betas, losses)})
-    plot_loss_landscape_2d(
-        np.array(alphas), np.array(betas), np.array(losses),
-        title=f"2D Loss Landscape — {name}",
-        save_path=os.path.join(plots_dir, "landscape.html"),
-    )
-    print(f"Data saved to {out_dir}/  |  Plots saved to {plots_dir}/")
+    print(f"Data saved to {out_dir}/")
 
 
 # ── batch mode ───────────────────────────────────────────────────────────────
@@ -171,10 +158,7 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
     # Accumulate per-seed results grouped by config key (opt/rho[/alpha])
     # so we can average across seeds rather than silently overwriting them.
     from collections import defaultdict
-    traces_by_key:    dict[str, list[float]]       = defaultdict(list)
-    landscapes_by_key: dict[str, list[np.ndarray]] = defaultdict(list)
-    alphas_ref:  dict[str, list] = {}
-    betas_ref:   dict[str, list] = {}
+    traces_by_key: dict[str, list[float]] = defaultdict(list)
 
     for i, e in enumerate(entries, 1):
         key = f"{e['opt']}_rho{e['rho']}"
@@ -190,11 +174,8 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
         )
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = _load_checkpoint(e["path"], cfg, device)
-        trace, alphas, betas, losses = _analyse_one(key, model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
+        trace = _compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
         traces_by_key[key].append(trace)
-        landscapes_by_key[key].append(np.array(losses))
-        alphas_ref[key] = alphas
-        betas_ref[key]  = betas
         del model, test_loader
         gc.collect()
         if torch.cuda.is_available():
@@ -206,25 +187,13 @@ def main_batch(config_path: str, ckpt_dir: str, out_dir: str, seed: int, n_sampl
 
     # Average across seeds
     sharpness_all: dict[str, float] = {k: float(np.mean(v)) for k, v in traces_by_key.items()}
-    landscape_all: dict[str, tuple] = {
-        k: (alphas_ref[k], betas_ref[k], np.mean(landscapes_by_key[k], axis=0).tolist())
-        for k in traces_by_key
-    }
 
     save_results(os.path.join(out_dir, "sharpness_all.json"), sharpness_all)
-    save_results(os.path.join(out_dir, "landscape_all.json"), landscape_all)
 
     plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
 
-    # ── Plot 1: sharpness bar chart ──────────────────────────────────────────
     _plot_sharpness_bars(sharpness_all, plots_dir)
-
-    # ── Plot 2: landscape comparison (one line per checkpoint) ───────────────
-    _plot_landscape_comparison(landscape_all, plots_dir)
-
-    # ── Plot 3: landscape comparison — best ρ per optimizer ──────────────────
-    _plot_landscape_best(landscape_all, plots_dir)
 
     print(f"\nData saved to {out_dir}/  |  Plots saved to {plots_dir}/")
 
@@ -292,116 +261,6 @@ def _plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
         legend=dict(x=0.01, y=0.99),
     )
     path = os.path.join(out_dir, "sharpness_vs_rho.html")
-    fig.write_html(path)
-    print(f"Saved → {path}")
-
-
-def _plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> None:
-    Z_CLIP = 5.0
-    keys = sorted(landscape.keys())
-    n = len(keys)
-    ncols = 4
-    nrows = (n + ncols - 1) // ncols
-    titles = [k.replace("_rho", " ρ=") for k in keys]
-
-    specs = [[{"type": "scene"} for _ in range(ncols)] for _ in range(nrows)]
-    fig = make_subplots(
-        rows=nrows, cols=ncols,
-        subplot_titles=titles,
-        specs=specs,
-        horizontal_spacing=0.04,
-        vertical_spacing=0.08,
-    )
-    scene_updates = {}
-    for idx, key in enumerate(keys):
-        alphas, betas, losses = landscape[key]
-        Z = np.clip(np.array(losses), 0, Z_CLIP).T
-        row, col = idx // ncols + 1, idx % ncols + 1
-        fig.add_trace(go.Surface(
-            z=Z.tolist(),
-            x=alphas if isinstance(alphas, list) else alphas.tolist(),
-            y=betas if isinstance(betas, list) else betas.tolist(),
-            colorscale="RdBu_r",
-            showscale=(idx == 0),
-            contours=dict(z=dict(show=True, usecolormap=True, project_z=True)),
-        ), row=row, col=col)
-        scene_key = "scene" if idx == 0 else f"scene{idx + 1}"
-        scene_updates[scene_key] = dict(
-            xaxis_title="α", yaxis_title="β", zaxis_title="Loss",
-            camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
-        )
-
-    fig.update_layout(
-        title="3D Loss Landscape — All Checkpoints",
-        template="plotly_white",
-        height=380 * nrows,
-        **scene_updates,
-    )
-    path = os.path.join(out_dir, "landscape_all.html")
-    fig.write_html(path)
-    print(f"Saved → {path}")
-
-
-def _plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
-    r"""2 x 2 contour grid — best rho per optimizer (lowest centre loss)."""
-    from collections import defaultdict
-    Z_CLIP = 5.0
-    by_opt: dict[str, list] = defaultdict(list)
-    for key, (alphas, betas, losses) in landscape.items():
-        opt = _opt_from_key(key)
-        rho = float(key.split("rho")[1].split("_")[0])
-        losses_arr = np.array(losses)
-        mid = losses_arr.shape[0] // 2
-        centre_loss = losses_arr[mid, mid]
-        by_opt[opt].append((centre_loss, rho, alphas, betas, losses))
-
-    opt_order = [o for o in ("sgd", "sam", "msam", "asam") if o in by_opt]
-    ncols = 2
-    nrows = (len(opt_order) + ncols - 1) // ncols
-    titles = []
-    best_data = []
-    for opt in opt_order:
-        best = min(by_opt[opt], key=lambda x: x[0])
-        _, rho, alphas, betas, losses = best
-        titles.append(f"{opt.upper()} ρ={rho}" if opt != "sgd" else "SGD")
-        best_data.append((alphas, betas, losses))
-
-    fig = make_subplots(
-        rows=nrows, cols=ncols,
-        specs=[[{"type": "scene"} for _ in range(ncols)] for _ in range(nrows)],
-        subplot_titles=titles,
-        horizontal_spacing=0.05,
-        vertical_spacing=0.08,
-    )
-    for idx, (alphas, betas, losses) in enumerate(best_data):
-        Z = np.clip(np.array(losses), 0, Z_CLIP).T
-        row, col = idx // ncols + 1, idx % ncols + 1
-        fig.add_trace(go.Surface(
-            z=Z.tolist(),
-            x=alphas if isinstance(alphas, list) else alphas.tolist(),
-            y=betas if isinstance(betas, list) else betas.tolist(),
-            colorscale="RdBu_r",
-            showscale=(idx == 0),
-            colorbar=dict(title="Loss", x=1.02),
-        ), row=row, col=col)
-
-    # Apply consistent camera angle to all scene axes
-    scene_cfg = dict(
-        xaxis_title="α", yaxis_title="β", zaxis_title="Loss",
-        camera=dict(eye=dict(x=1.5, y=1.5, z=1.0)),
-    )
-    scene_updates = {}
-    for idx in range(len(best_data)):
-        key = "scene" if idx == 0 else f"scene{idx + 1}"
-        scene_updates[key] = scene_cfg
-
-    fig.update_layout(
-        title="2D Loss Landscape — Best ρ per Optimizer",
-        template="plotly_white",
-        height=520 * nrows,
-        **scene_updates,
-    )
-    path = os.path.join(out_dir, "landscape_best.html")
     fig.write_html(path)
     print(f"Saved → {path}")
 

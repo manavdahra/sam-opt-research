@@ -74,6 +74,6 @@ without actually changing the function. See - Desjardins et al., 2015; Salimans 
 2016
 19. What is meant by rank statistics and how is it used to compare the correlation of adaptive sharpness and sharpness with generalization gap?
 
-Read the following papers for more insights on the topics discussed above:
+## Bradley suggested to read the following papers for more insights on the topics discussed above:
 https://arxiv.org/pdf/2211.17192
 https://arxiv.org/pdf/2410.21265

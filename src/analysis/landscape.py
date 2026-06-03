@@ -43,8 +43,11 @@ def loss_landscape_2d(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the 2D loss landscape around θ* along two orthogonal filter-normalized directions.
 
-    Loss is evaluated on a (steps × steps) grid:
-        L(θ* + α·δ₁ + β·δ₂)  for  α, β ∈ [-range_, +range_].
+    Loss is evaluated on a (steps x steps) grid:
+    $$
+        L(\theta^* + \alpha \cdot \delta_1 + \beta \cdot \delta_2)  for  \alpha, \beta \in [-1.0, +1.0]
+    $$
+        where $\delta_1$ and $\delta_2$ are random filter-normalized directions in parameter space,
 
     The two directions are Gram-Schmidt orthogonalised so the grid spans an
     unbiased 2D cross-section of the loss surface.
@@ -52,7 +55,7 @@ def loss_landscape_2d(
     Returns:
         alphas: 1D array of shape (steps,)       — first direction coefficients.
         betas:  1D array of shape (steps,)       — second direction coefficients.
-        losses: 2D array of shape (steps, steps) — losses[i, j] = L(α_i, β_j).
+        losses: 2D array of shape (steps, steps) — losses[i, j] = L($\alpha_i$, $\beta_j$).
     """
     inputs, targets = next(iter(loader))
     inputs, targets = inputs.to(device), targets.to(device)
@@ -123,12 +126,12 @@ def plot_loss_landscape_2d(
     Args:
         alphas: 1D array — first direction coefficients (x-axis).
         betas:  1D array — second direction coefficients (y-axis).
-        losses: 2D array of shape (len(alphas), len(betas)), losses[i, j] = L(α_i, β_j).
+        losses: 2D array of shape (len(alphas), len(betas)), losses[i, j] = L($\alpha_i$, $\beta_j$).
         title:  Figure title.
         save_path: If given, save as HTML (replaces .png suffix if present).
         z_clip: Clip loss values above this threshold (None = no clipping).
     """
-    # plotly Surface: z[i][j] = value at (x[j], y[i]) → transpose losses
+    
     Z = np.clip(losses, 0, z_clip).T if z_clip is not None else losses.T
     fig = go.Figure(data=go.Surface(
         z=Z.tolist(),
