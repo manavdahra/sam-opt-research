@@ -21,10 +21,6 @@ def get_vit_b_32(num_classes: int = 10, pretrained: bool = True) -> nn.Module:
     return model
 
 
-# ---------------------------------------------------------------------------
-# Reparametrization utility
-# ---------------------------------------------------------------------------
-
 def _get_mlp_linears(encoder_block: nn.Module) -> tuple[nn.Linear, nn.Linear] | None:
     """Extract the two Linear layers from a ViT encoder block's MLP sub-block.
 
@@ -52,20 +48,12 @@ def apply_layernorm_reparam(model: nn.Module, alpha: float) -> None:
 
     For each encoder block the transform is:
 
-        ln_2.weight  (γ) ×= α
-        ln_2.bias    (β) ×= α
-        mlp.linear1.weight ×= 1/α
+        ln_2.weight  (gamma) *= alpha
+        ln_2.bias    (beta) *= alpha
+        mlp.linear1.weight *= 1/alpha
 
-    **Why this is exact:**
-    LayerNorm output is ``y = γ·x̂ + β``.  Scaling both γ and β by α gives
-    ``y' = α·y`` exactly (it's a linear operation on the affine parameters).
-    Dividing ``linear1.weight`` by α then cancels the factor:
-    ``W₁' · y' = (W₁/α)·(α·y) = W₁·y``.
-    ``linear1.bias`` is unchanged — it is added after the weight multiply and
-    never sees the scale change from the LN output.
-    GELU is never crossed, so no homogeneity assumption is required.
-
-    The transform is applied in-place.  alpha=1.0 is a no-op.
+    This preserves the network function exactly because the transform only crosses
+    a linear boundary (LayerNorm at Linear); we avoid touching GELU which is non-homogeneous.
 
     Args:
         model: A ViT-B/32 returned by get_vit_b_32().
@@ -89,5 +77,4 @@ def apply_layernorm_reparam(model: nn.Module, alpha: float) -> None:
             if ln_2.bias is not None:
                 ln_2.bias.mul_(alpha)
             linear1.weight.mul_(1.0 / alpha)
-            # linear1.bias is intentionally left unchanged
 

@@ -95,10 +95,7 @@ def get_cifar10_loaders(
         ]
     )
 
-    hf_ds = load_dataset(
-        "uoft-cs/cifar10",
-        cache_dir=data_dir,
-    )
+    hf_ds = load_dataset("uoft-cs/cifar10", cache_dir=data_dir)
 
     train_dataset = _HFCifar10Dataset(hf_ds["train"], train_transform)
     test_dataset = _HFCifar10Dataset(hf_ds["test"], test_transform)
@@ -111,9 +108,8 @@ def get_cifar10_loaders(
     import torch
     pin_memory = torch.cuda.is_available()  # pin_memory is unsupported on MPS
 
-    # HuggingFace datasets opens many parquet file descriptors; on macOS the
-    # default open-files limit (256) is quickly exhausted when DataLoader
-    # workers each inherit those descriptors. Force single-process loading on mac.
+    # On macOs too many parquet file descriptors are opened by the workers, causing an OSError.
+    # Setting num_workers=0 avoids this issue.
     if sys.platform == "darwin":
         num_workers = 0
 

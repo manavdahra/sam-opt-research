@@ -1,17 +1,3 @@
-"""Reparametrisation — consolidated API.
-
-Re-exports the model-specific functions and provides a unified
-``apply_reparam`` dispatcher used by experiment scripts.
-
-ResNet-18 (exact):
-    ReLU is 1-homogeneous at scaling BN1/conv1 output by alpha and compensating
-    conv2's input by 1/alpha preserves the network function exactly.
-
-ViT-B/32 (exact):
-    Scales ln_2 affine parameters (gamma, beta) by alpha and mlp.linear1.weight by 1/alpha.
-    The transform crosses only the linear LayerNorm at Linear1 boundary;
-    GELU is never touched, so no homogeneity assumption is required.
-"""
 from __future__ import annotations
 
 import torch.nn as nn

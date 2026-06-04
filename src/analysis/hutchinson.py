@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 # backend for the entire Hutchinson computation to work around this.
 try:
     from torch.nn.attention import SDPBackend, sdpa_kernel as _sdpa_kernel
-    _SDPA_CTX = lambda: _sdpa_kernel([SDPBackend.MATH])  # noqa: E731
+    _SDPA_CTX = lambda: _sdpa_kernel([SDPBackend.MATH])
 except ImportError:  # older PyTorch (<2.1)
     import contextlib
     _SDPA_CTX = contextlib.nullcontext
@@ -25,8 +25,8 @@ def hutchinson_trace(
 ) -> float:
     """Estimate tr(H) / d via the Hutchinson stochastic estimator.
 
-    Uses Rademacher random vectors z ~ {±1}^d. Each estimate is:
-        z^T H z  =  z · ∇(∇L · z)
+    Uses Rademacher random vectors z ~ {+/-1}^d. Each estimate is:
+        z^T H z  =  z d(dL z)
     computed via two backward passes (Pearlmutter trick).
 
     Args:
@@ -57,7 +57,7 @@ def hutchinson_trace(
             # Sample Rademacher vector
             zs = [torch.randint_like(p, 0, 2).float() * 2.0 - 1.0 for p in params]
 
-            # First backward: compute ∇L
+            # First backward: compute dL
             for p in params:
                 if p.grad is not None:
                     p.grad.zero_()
@@ -65,10 +65,10 @@ def hutchinson_trace(
             loss = loss_fn(outputs, targets)
             grads = torch.autograd.grad(loss, params, create_graph=True)
 
-            # Dot product ∇L · z
+            # Dot product dL z
             grad_dot_z = sum((g * z).sum() for g, z in zip(grads, zs))
 
-            # Second backward: compute ∇(∇L · z) = Hz
+            # Second backward: compute d(dL z) = Hz
             hz = torch.autograd.grad(grad_dot_z, params, retain_graph=False)
 
             # Estimate: z^T H z / d

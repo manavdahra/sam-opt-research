@@ -18,10 +18,6 @@ def get_resnet18(num_classes: int = 10) -> nn.Module:
     return model
 
 
-# ---------------------------------------------------------------------------
-# Reparametrization utility
-# ---------------------------------------------------------------------------
-
 def apply_relu_reparam(model: nn.Module, alpha: float) -> None:
     r"""Apply a function-preserving scale reparametrization to ResNet-18.
 
