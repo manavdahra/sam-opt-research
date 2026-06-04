@@ -31,13 +31,13 @@ yield measurably better optimisation than Euclidean or diagonal-scaling alternat
 ```
 configs/          Experiment YAML configs (model, optimizer, $\rho$, $\alpha$ settings)
 experiments/      Training and analysis scripts
-  run_resnet18_baseline.sh
-  run_resnet18_reparam.sh
-  run_vit_baseline.sh
-  run_vit_reparam.sh
   run_flatness.py
   plot_baseline.py
   plot_convergence.py
+  plot_landscape.py
+  plot_flatness.py
+  plot_loss_curves.py
+  ...
 src/              Model definitions, optimiser wrappers, metrics
   models/         ResNet-18, ViT-B/32
   optimizers/     SAM, ASAM, M-SAM
@@ -46,7 +46,7 @@ results/          Output directory (created by training scripts)
   resnet18/
   vit_b_32/
 tests/            Unit tests (reparametrisation correctness, etc.)
-docs/             CS229 final report (LaTeX)
+docs/             Project documentation (this README, experiment design notes, etc.)
 ```
 
 ## Infrastructure
