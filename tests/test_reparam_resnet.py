@@ -1,4 +1,6 @@
+import copy
 import torch
+import torchvision.models.resnet as tvr
 import pytest
 from src.models.resnet18 import get_resnet18, apply_relu_reparam, verify_reparam_resnet
 
@@ -33,7 +35,6 @@ def test_reparam_preserves_function_alpha10(model, dummy_input):
 
 def test_reparam_noop_alpha1(model, dummy_input):
     """alpha=1.0 must be a strict no-op (weights unchanged)."""
-    import copy
     original_state = copy.deepcopy(model.state_dict())
     apply_relu_reparam(model, alpha=1.0)
     for key in original_state:
@@ -44,9 +45,6 @@ def test_reparam_noop_alpha1(model, dummy_input):
 
 def test_reparam_scales_weights(model):
     """Verify that BN1 and conv2 weights are actually scaled (not silently skipped)."""
-    import copy
-    import torchvision.models.resnet as tvr
-
     model_reparam = copy.deepcopy(model)
     alpha = 3.0
     apply_relu_reparam(model_reparam, alpha=alpha)

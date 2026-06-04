@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 import os
@@ -187,8 +188,6 @@ def main(model, optimizer, out_dir, ncols: int = 3):
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="Plot all loss curves to HTML.")
     parser.add_argument("--model", default="resnet18", choices=list(METRICS_PATHS.keys()))
     parser.add_argument("--optimizer", default="sam", choices=list(OPT_STYLE.keys()))

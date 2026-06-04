@@ -1,16 +1,19 @@
-from __future__ import annotations
-
 import argparse
 import json
 import os
 import sys
+import yaml
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+import torch
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from fvcore.nn import FlopCountAnalysis
+from src.models.resnet18 import get_resnet18
+from src.models.vit import get_vit_b_32
 
 from src.analysis.metrics import (
     epochs_to_threshold,
@@ -34,17 +37,12 @@ SAM_FAMILY = {"sam", "asam", "msam"}
 
 def estimate_macs_per_sample(cfg: dict) -> float:
     """Compute MACs per sample using fvcore FlopCountAnalysis."""
-    import torch
-    from fvcore.nn import FlopCountAnalysis
-
     model_name = cfg.get("model", "resnet18")
     if model_name == "resnet18":
-        from src.models.resnet18 import get_resnet18
         model = get_resnet18(num_classes=10).eval()
         input_size = cfg.get("resize") or 32
         dummy = torch.zeros(1, 3, input_size, input_size)
     elif model_name == "vit_b_32":
-        from src.models.vit import get_vit_b_32
         model = get_vit_b_32(num_classes=10, pretrained=False).eval()
         input_size = cfg.get("resize") or 224
         dummy = torch.zeros(1, 3, input_size, input_size)
@@ -223,7 +221,6 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
     # Load config for FLOPs estimation
     cfg: dict = {}
     if config_path and os.path.exists(config_path):
-        import yaml
         with open(config_path) as f:
             cfg = yaml.safe_load(f)
     else:
@@ -233,7 +230,6 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
             os.path.basename(os.path.dirname(results_path)) + "_baseline.yaml",
         )
         if os.path.exists(candidate):
-            import yaml
             with open(candidate) as f:
                 cfg = yaml.safe_load(f)
 

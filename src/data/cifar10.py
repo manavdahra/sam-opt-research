@@ -1,7 +1,9 @@
+import random
 import sys
+import numpy as np
 import torch
 import torchvision.transforms as transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from datasets import load_dataset
 
 
@@ -26,8 +28,6 @@ CIFAR10_STD = (0.2470, 0.2435, 0.2616)
 
 
 def _worker_init_fn(worker_id: int) -> None:
-    import numpy as np
-    import random
     seed = torch.initial_seed() % (2**32)
     np.random.seed(seed)
     random.seed(seed)
@@ -101,11 +101,9 @@ def get_cifar10_loaders(
     test_dataset = _HFCifar10Dataset(hf_ds["test"], test_transform)
 
     if max_samples is not None:
-        from torch.utils.data import Subset
         train_dataset = Subset(train_dataset, range(min(max_samples, len(train_dataset))))
         test_dataset = Subset(test_dataset, range(min(max_samples, len(test_dataset))))
 
-    import torch
     pin_memory = torch.cuda.is_available()  # pin_memory is unsupported on MPS
 
     # On macOs too many parquet file descriptors are opened by the workers, causing an OSError.

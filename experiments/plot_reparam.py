@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import argparse
 import json
 import math
@@ -13,7 +11,6 @@ if _ROOT not in sys.path:
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 # Plotly Colormap for optimizers
 OPT_STYLE: dict[str, dict] = {

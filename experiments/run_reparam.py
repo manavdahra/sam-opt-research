@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 import argparse
+import json
 import os
 import sys
 import yaml
@@ -122,7 +121,6 @@ def main(config_path: str) -> None:
     # Load already-completed results to support resuming after restart
     done: set[tuple] = set()
     if os.path.exists(out_path):
-        import json
         with open(out_path) as _f:
             all_results = json.load(_f)
         for _r in all_results:

@@ -1,5 +1,4 @@
 """Shared utilities for experiment runner scripts."""
-from __future__ import annotations
 
 import datetime
 import os
@@ -21,6 +20,8 @@ if _ROOT not in sys.path:
 from src.optimizers.sam import SAM
 from src.optimizers.asam import ASAM
 from src.optimizers.msam import MSAM
+from src.models.resnet18 import get_resnet18
+from src.models.vit import get_vit_b_32
 
 
 def get_device() -> torch.device:
@@ -42,10 +43,8 @@ def set_seed(seed: int) -> None:
 def build_model(cfg: dict, device: torch.device) -> nn.Module:
     model_name = cfg["model"]
     if model_name == "resnet18":
-        from src.models.resnet18 import get_resnet18
         model = get_resnet18(num_classes=10)
     elif model_name == "vit_b_32":
-        from src.models.vit import get_vit_b_32
         model = get_vit_b_32(num_classes=10, pretrained=cfg.get("pretrained", True))
     else:
         raise ValueError(f"Unknown model: {model_name}")

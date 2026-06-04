@@ -1,8 +1,10 @@
 """Tests for ViT-B/32 MLP reparametrisation and the analysis.reparam facade."""
+import copy
 import pytest
 import torch
 import torch.nn as nn
 
+from src.models.resnet18 import get_resnet18
 from src.models.vit import (
     get_vit_b_32,
     apply_layernorm_reparam,
@@ -24,14 +26,12 @@ def dummy_input():
 
 
 def test_facade_resnet18_returns_none():
-    from src.models.resnet18 import get_resnet18
     model = get_resnet18(num_classes=10)
     result = apply_reparam(model, "resnet18", alpha=2.0)
     assert result is None
 
 
 def test_facade_vit_returns_none(vit_model):
-    import copy
     result = apply_reparam(copy.deepcopy(vit_model), "vit_b_32", alpha=2.0)
     assert result is None
 
@@ -42,7 +42,6 @@ def test_facade_unknown_model_raises(vit_model):
 
 
 def test_layernorm_reparam_noop_for_alpha1(vit_model):
-    import copy
     model = copy.deepcopy(vit_model)
     # Capture original ln_2 weights
     orig_weights = [
@@ -56,7 +55,6 @@ def test_layernorm_reparam_noop_for_alpha1(vit_model):
 
 def test_layernorm_reparam_scales_ln2_and_linear1(vit_model):
     """ln_2.weight/bias must be scaled by alpha; linear1.weight by 1/alpha."""
-    import copy
     alpha = 3.0
     model_orig = copy.deepcopy(vit_model)
     model_reparam = copy.deepcopy(vit_model)
@@ -78,7 +76,6 @@ def test_layernorm_reparam_scales_ln2_and_linear1(vit_model):
 @pytest.mark.parametrize("alpha", [0.5, 2.0, 5.0, 10.0])
 def test_layernorm_reparam_is_exactly_function_preserving(vit_model, dummy_input, alpha):
     """The LayerNorm-based reparam must not change model output at all."""
-    import copy
     model_orig = copy.deepcopy(vit_model)
     model_reparam = copy.deepcopy(vit_model)
     apply_layernorm_reparam(model_reparam, alpha=alpha)

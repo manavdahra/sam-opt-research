@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 import torchvision.models as tvm
@@ -61,7 +62,6 @@ def verify_reparam_resnet(model: nn.Module, x: torch.Tensor, alpha: float) -> fl
     Returns the max absolute difference between the original and reparametrized
     model outputs for input x.
     """
-    import copy
     model_orig = copy.deepcopy(model)
     model_reparam = copy.deepcopy(model)
     apply_relu_reparam(model_reparam, alpha)

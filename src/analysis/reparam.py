@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import torch.nn as nn
 
 from src.models.resnet18 import apply_relu_reparam, verify_reparam_resnet

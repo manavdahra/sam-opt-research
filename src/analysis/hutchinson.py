@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+import contextlib
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -11,7 +10,6 @@ try:
     from torch.nn.attention import SDPBackend, sdpa_kernel as _sdpa_kernel
     _SDPA_CTX = lambda: _sdpa_kernel([SDPBackend.MATH])
 except ImportError:  # older PyTorch (<2.1)
-    import contextlib
     _SDPA_CTX = contextlib.nullcontext
 
 
