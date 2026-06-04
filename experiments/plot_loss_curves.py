@@ -12,6 +12,8 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+from experiments.utils import OPT_STYLE
+
 RESULTS_DIR = Path(_ROOT) / "results"
 
 METRICS_PATHS = {
@@ -83,14 +85,6 @@ def discover_configs(model: str, optimizer: str) -> dict[str, list]:
     reparam_configs.sort(key=lambda x: (x[0], x[1], x[2]))
 
     return {"baseline": baseline_configs, "reparam": reparam_configs}
-
-
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#7B8794", "label": "SGD"},
-    "sam":  {"color": "#4878CF", "label": "SAM"},
-    "asam": {"color": "#C8703A", "label": "ASAM"},
-    "msam": {"color": "#3D8C6E", "label": "M-SAM"},
-}
 
 
 def main(model, optimizer, out_dir, ncols: int = 3):

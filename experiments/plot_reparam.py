@@ -1,5 +1,4 @@
 import argparse
-import json
 import math
 import os
 import sys
@@ -12,21 +11,10 @@ if _ROOT not in sys.path:
 import numpy as np
 import plotly.graph_objects as go
 
-# Plotly Colormap for optimizers
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#7B8794", "symbol": "diamond",     "label": "SGD"},
-    "sam":  {"color": "#4878CF", "symbol": "circle",      "label": "SAM"},
-    "asam": {"color": "#C8703A", "symbol": "triangle-up", "label": "ASAM"},
-    "msam": {"color": "#3D8C6E", "symbol": "square",      "label": "M-SAM"},
-}
+from experiments.utils import OPT_STYLE, load_results, save_figure, resolve_out_dir
 
 # Display order for optimizers in legends and summaries
 OPT_ORDER = ("sgd", "sam", "asam", "msam")
-
-
-def load_results(path: str) -> list[dict]:
-    with open(path) as f:
-        return json.load(f)
 
 
 def sorted_alphas(agg: list[dict]) -> list[float]:
@@ -135,12 +123,7 @@ def plot_accuracy_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> N
     )
     fig.update_yaxes(range=[min_acc - 0.01, max_acc + 0.01]) # Zoom in on the accuracy range for better visibility
 
-    path = os.path.join(out_dir, "reparam_accuracy.html")
-    fig.write_html(path)
-    print(f"Saved at {path}")
-    png_path = os.path.join(out_dir, "reparam_accuracy.png")
-    fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved at {png_path}")
+    save_figure(fig, out_dir, "reparam_accuracy")
 
 
 def plot_gen_gap_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> None:
@@ -185,19 +168,12 @@ def plot_gen_gap_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> No
     )
     fig.update_yaxes(range=[0.1, 0.2])  # Zoom in on the generalisation gap for better visibility
 
-    path = os.path.join(out_dir, "reparam_gen_gap.html")
-    fig.write_html(path)
-    print(f"Saved at {path}")
-    png_path = os.path.join(out_dir, "reparam_gen_gap.png")
-    fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved at {png_path}")
+    save_figure(fig, out_dir, "reparam_gen_gap")
 
 
 def main(results_path: str, out_dir: str | None = None) -> None:
     data = load_results(results_path)
-    if out_dir is None:
-        out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = resolve_out_dir(results_path, out_dir)
 
     model_label = infer_model_label(data)
     rhos = sorted({e["rho"] for e in data})

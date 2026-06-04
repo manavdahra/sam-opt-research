@@ -1,7 +1,5 @@
 import argparse
-import gc
 import os
-import re
 import sys
 import yaml
 
@@ -17,31 +15,11 @@ import torch.nn as nn
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from src.data.cifar10 import get_cifar10_loaders
 from src.analysis.landscape import loss_landscape_2d, plot_loss_landscape_2d
-from experiments.utils import get_device, set_seed, build_model, save_results
-
-# Baseline filename pattern: <opt>_rho<rho>_seed<seed>.pt to look for in results directory 
-_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
-# Reparam filename pattern: <opt>_rho<rho>_alpha<alpha>_seed<seed>.pt to look for in results directory
-_REPARAM_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_alpha(?P<alpha>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
-
-# Plotly Colormap for optimizers
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#9E9E9E", "linestyle": "--"},
-    "sam":  {"color": "#2196F3", "linestyle": "-"},
-    "asam": {"color": "#FF9800", "linestyle": "-"},
-    "msam": {"color": "#4CAF50", "linestyle": "-"},
-}
-
-
-def load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
-    """Load a model checkpoint from the given path and return the model on the specified device."""
-    model = build_model(cfg, device)
-    state = torch.load(path, map_location=device, weights_only=True)
-    model.load_state_dict(state)
-    model.eval() # Set to eval mode since we're only doing forward passes for loss evaluation
-    return model
+from experiments.utils import (
+    get_device, set_seed, build_model, save_results,
+    load_checkpoint, build_data_loaders, discover_checkpoints, free_gpu_resources,
+)
 
 
 def compute_landscape(
@@ -82,13 +60,7 @@ def main_single(
     device = get_device()
     set_seed(seed)
     
-    _, test_loader = get_cifar10_loaders(
-        data_dir=cfg["data_dir"],
-        batch_size=cfg["batch_size"],
-        num_workers=cfg.get("num_workers", 4),
-        resize=cfg.get("resize"),
-        max_samples=cfg.get("max_samples"),
-    )
+    _, test_loader = build_data_loaders(cfg)
     loss_fn = nn.CrossEntropyLoss()
 
     name = os.path.basename(checkpoint)
@@ -133,27 +105,8 @@ def main_batch(
     os.makedirs(out_dir, exist_ok=True)
 
     # Discover and sort checkpoints
-    ckpt_files = sorted(f for f in os.listdir(ckpt_dir) if f.endswith(".pt"))
     is_reparam = experiment == "reparam"
-    
-    entries: list[dict] = []
-    for fname in ckpt_files:
-        m = (_REPARAM_CKPT_RE if is_reparam else _CKPT_RE).match(fname)
-        if not m:
-            print(f"Skipping unrecognised file: {fname}")
-            continue
-        
-        entry = {
-            "fname": fname,
-            "path": os.path.join(ckpt_dir, fname),
-            "opt": m.group("opt"),
-            "rho": float(m.group("rho")),
-            "seed": int(m.group("seed")),
-        }
-        
-        if is_reparam:
-            entry["alpha"] = float(m.group("alpha"))
-        entries.append(entry)
+    entries = discover_checkpoints(ckpt_dir, is_reparam=is_reparam)
 
     # Accumulate per-seed landscapes grouped by config key (opt/rho[/alpha])
     landscapes_by_key = defaultdict(list)
@@ -164,13 +117,7 @@ def main_batch(
         if "alpha" in e:
             key += f"_alpha{e['alpha']}"
         set_seed(e["seed"])
-        _, test_loader = get_cifar10_loaders(
-            data_dir=cfg["data_dir"],
-            batch_size=cfg["batch_size"],
-            num_workers=cfg.get("num_workers", 4),
-            resize=cfg.get("resize"),
-            max_samples=cfg.get("max_samples"),
-        )
+        _, test_loader = build_data_loaders(cfg)
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = load_checkpoint(e["path"], cfg, device)
         alphas, betas, losses = compute_landscape(model, loss_fn, test_loader, device, steps=steps, range_=range_)
@@ -181,9 +128,7 @@ def main_batch(
         # regardless of Python GC timing.
         model.cpu()
         del model, test_loader
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        free_gpu_resources()
 
     # Average the values across seeds
     landscape_all: dict[str, tuple] = {

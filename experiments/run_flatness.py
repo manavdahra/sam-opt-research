@@ -1,7 +1,5 @@
 import argparse
-import gc
 import os
-import re
 import sys
 import yaml
 from collections import defaultdict
@@ -14,23 +12,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from src.data.cifar10 import get_cifar10_loaders
 from src.analysis.hutchinson import hutchinson_trace
-from experiments.utils import get_device, set_seed, build_model, save_results
+from experiments.utils import (
+    get_device, set_seed, build_model, save_results,
+    load_checkpoint, build_data_loaders, discover_checkpoints, free_gpu_resources,
+)
 from experiments.plot_flatness import plot_all as plot_sharpness_all
-
-# Baseline filename pattern: <opt>_rho<rho>_seed<seed>.pt to look for in results directory 
-_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
-# Reparam filename pattern: <opt>_rho<rho>_alpha<alpha>_seed<seed>.pt to look for in results directory
-_REPARAM_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_alpha(?P<alpha>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
-
-def load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
-    """Load a model checkpoint from the given path and return the model in eval mode."""
-    model = build_model(cfg, device)
-    state = torch.load(path, map_location=device, weights_only=True)
-    model.load_state_dict(state)
-    model.eval() # Set to eval mode since we're only doing inference for sharpness estimation
-    return model
 
 
 def compute_sharpness(
@@ -87,13 +74,7 @@ def main_single(
 
     device = get_device()
     set_seed(seed)
-    _, test_loader = get_cifar10_loaders(
-        data_dir=cfg["data_dir"],
-        batch_size=cfg["batch_size"],
-        num_workers=cfg.get("num_workers", 4),
-        resize=cfg.get("resize"),
-        max_samples=cfg.get("max_samples"),
-    )
+    _, test_loader = build_data_loaders(cfg)
     loss_fn = nn.CrossEntropyLoss()
 
     name = os.path.basename(checkpoint)
@@ -126,26 +107,8 @@ def main_batch(
     os.makedirs(out_dir, exist_ok=True)
 
     # Discover and sort checkpoints
-    ckpt_files = sorted(f for f in os.listdir(ckpt_dir) if f.endswith(".pt"))
     is_reparam = experiment == "reparam"
-    
-    entries = []
-    for fname in ckpt_files:
-        m = (_REPARAM_CKPT_RE if is_reparam else _CKPT_RE).match(fname)
-        if not m:
-            print(f"Skipping unrecognised file: {fname}")
-            continue
-        
-        entry = {
-            "fname": fname,
-            "path": os.path.join(ckpt_dir, fname),
-            "opt": m.group("opt"),
-            "rho": float(m.group("rho")),
-            "seed": int(m.group("seed")),
-        }
-        if is_reparam:
-            entry["alpha"] = float(m.group("alpha"))
-        entries.append(entry)
+    entries = discover_checkpoints(ckpt_dir, is_reparam=is_reparam)
 
     # Accumulate per-seed results grouped by config key (opt/rho[/alpha])
     # so we can average across seeds rather than silently overwriting them.
@@ -156,21 +119,13 @@ def main_batch(
         if "alpha" in e:
             key += f"_alpha{e['alpha']}"
         set_seed(e["seed"])
-        _, test_loader = get_cifar10_loaders(
-            data_dir=cfg["data_dir"],
-            batch_size=cfg["batch_size"],
-            num_workers=cfg.get("num_workers", 4),
-            resize=cfg.get("resize"),
-            max_samples=cfg.get("max_samples"),
-        )
+        _, test_loader = build_data_loaders(cfg)
         print(f"\n[{i}/{len(entries)}] {key} (seed={e['seed']})")
         model = load_checkpoint(e["path"], cfg, device)
         trace = compute_sharpness(model, loss_fn, test_loader, device, n_samples=n_samples, max_batch=max_batch)
         traces_by_key[key].append(trace)
         del model, test_loader
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        free_gpu_resources()
 
         # Incremental save of per-seed-averaged sharpness seen so far
         sharpness_partial = {k: float(np.mean(v)) for k, v in traces_by_key.items()}

@@ -13,12 +13,11 @@ if _ROOT not in sys.path:
 import torch
 import torch.nn as nn
 
-from src.data.cifar10 import get_cifar10_loaders
 from src.training.trainer import train
 from src.analysis.reparam import apply_reparam
 from experiments.utils import (
     get_device, set_seed, build_model, build_optimizer, save_results,
-    make_run_id, write_run_dir, update_index,
+    make_run_id, write_run_dir, update_index, build_data_loaders,
 )
 
 
@@ -40,13 +39,7 @@ def run_single(
     device = get_device()
     set_seed(seed)
 
-    train_loader, test_loader = get_cifar10_loaders(
-        data_dir=cfg["data_dir"],
-        batch_size=cfg["batch_size"],
-        num_workers=cfg.get("num_workers", 4),
-        resize=cfg.get("resize"),
-        max_samples=cfg.get("max_samples"),
-    )
+    train_loader, test_loader = build_data_loaders(cfg)
 
     model = build_model(cfg, device)
     _apply_reparam(model, cfg["model"], alpha)

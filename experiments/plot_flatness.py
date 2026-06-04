@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import sys
 from collections import defaultdict
@@ -10,18 +9,7 @@ if _ROOT not in sys.path:
 
 import plotly.graph_objects as go
 
-# Plotly Colormap for optimizers
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#7B8794", "symbol": "diamond",     "label": "SGD"},
-    "sam":  {"color": "#4878CF", "symbol": "circle",      "label": "SAM"},
-    "asam": {"color": "#C8703A", "symbol": "triangle-up", "label": "ASAM"},
-    "msam": {"color": "#3D8C6E", "symbol": "square",      "label": "M-SAM"},
-}
-
-
-def load_results(path: str) -> dict[str, float]:
-    with open(path) as f:
-        return json.load(f)
+from experiments.utils import OPT_STYLE, load_results, save_figure, resolve_out_dir
 
 
 def plot_sharpness_bars(sharpness: dict[str, float], out_dir: str) -> None:
@@ -48,12 +36,7 @@ def plot_sharpness_bars(sharpness: dict[str, float], out_dir: str) -> None:
         width=800,
         height=500,
     )
-    path = os.path.join(out_dir, "sharpness_bars.html")
-    fig.write_html(path)
-    print(f"Saved at {path}")
-    png_path = os.path.join(out_dir, "sharpness_bars.png")
-    fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved at {png_path}")
+    save_figure(fig, out_dir, "sharpness_bars")
 
 
 def plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
@@ -91,12 +74,7 @@ def plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
         width=800,
         height=500,
     )
-    path = os.path.join(out_dir, "sharpness_vs_rho.html")
-    fig.write_html(path)
-    print(f"Saved at {path}")
-    png_path = os.path.join(out_dir, "sharpness_vs_rho.png")
-    fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved at {png_path}")
+    save_figure(fig, out_dir, "sharpness_vs_rho")
 
 
 def plot_all(sharpness: dict[str, float], out_dir: str) -> None:
@@ -107,9 +85,7 @@ def plot_all(sharpness: dict[str, float], out_dir: str) -> None:
 
 def main(results_path: str, out_dir: str | None = None) -> None:
     sharpness = load_results(results_path)
-    if out_dir is None:
-        out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = resolve_out_dir(results_path, out_dir)
 
     print(f"\nLoaded {len(sharpness)} entries from {results_path}")
     print("\n── Sharpness table ──")

@@ -1,7 +1,9 @@
 """Shared utilities for experiment runner scripts."""
 
 import datetime
+import gc
 import os
+import re
 import sys
 import json
 import random
@@ -22,6 +24,22 @@ from src.optimizers.asam import ASAM
 from src.optimizers.msam import MSAM
 from src.models.resnet18 import get_resnet18
 from src.models.vit import get_vit_b_32
+from src.data.cifar10 import get_cifar10_loaders
+
+
+# Canonical Plotly colour/symbol/label mapping for all optimizers
+OPT_STYLE: dict[str, dict] = {
+    "sgd":  {"color": "#7B8794", "symbol": "diamond",     "label": "SGD"},
+    "sam":  {"color": "#4878CF", "symbol": "circle",      "label": "SAM"},
+    "asam": {"color": "#C8703A", "symbol": "triangle-up", "label": "ASAM"},
+    "msam": {"color": "#3D8C6E", "symbol": "square",      "label": "M-SAM"},
+}
+
+# Checkpoint filename patterns used by run_baseline / run_reparam
+_CKPT_RE = re.compile(r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_seed(?P<seed>\d+)\.pt$")
+_REPARAM_CKPT_RE = re.compile(
+    r"^(?P<opt>[a-z]+)_rho(?P<rho>[0-9.]+)_alpha(?P<alpha>[0-9.]+)_seed(?P<seed>\d+)\.pt$"
+)
 
 
 def get_device() -> torch.device:
@@ -99,6 +117,85 @@ def save_results(path: str, data: dict | list) -> None:
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
     print(f"Saved at {path}")
+
+
+def load_results(path: str):
+    """Load and return the contents of a JSON results file."""
+    with open(path) as f:
+        return json.load(f)
+
+
+def load_checkpoint(path: str, cfg: dict, device: torch.device) -> nn.Module:
+    """Load a model checkpoint and return the model in eval mode."""
+    model = build_model(cfg, device)
+    state = torch.load(path, map_location=device, weights_only=True)
+    model.load_state_dict(state)
+    model.eval()
+    return model
+
+
+def build_data_loaders(cfg: dict):
+    """Build CIFAR-10 train and test data loaders from a config dict."""
+    return get_cifar10_loaders(
+        data_dir=cfg["data_dir"],
+        batch_size=cfg["batch_size"],
+        num_workers=cfg.get("num_workers", 4),
+        resize=cfg.get("resize"),
+        max_samples=cfg.get("max_samples"),
+    )
+
+
+def save_figure(fig, out_dir: str, stem: str, width: int = 800, height: int = 500) -> None:
+    """Save a Plotly figure as both HTML and PNG under out_dir."""
+    path = os.path.join(out_dir, f"{stem}.html")
+    fig.write_html(path)
+    print(f"Saved at {path}")
+    png_path = os.path.join(out_dir, f"{stem}.png")
+    fig.write_image(png_path, width=width, height=height, scale=2)
+    print(f"Saved at {png_path}")
+
+
+def discover_checkpoints(ckpt_dir: str, is_reparam: bool = False) -> list[dict]:
+    """Return parsed checkpoint entries from ckpt_dir.
+
+    Each entry dict contains: fname, path, opt, rho, seed.
+    Reparam entries additionally contain: alpha.
+    Files not matching the expected naming pattern are skipped.
+    """
+    ckpt_files = sorted(f for f in os.listdir(ckpt_dir) if f.endswith(".pt"))
+    pattern = _REPARAM_CKPT_RE if is_reparam else _CKPT_RE
+    entries: list[dict] = []
+    for fname in ckpt_files:
+        m = pattern.match(fname)
+        if not m:
+            print(f"Skipping unrecognised file: {fname}")
+            continue
+        entry = {
+            "fname": fname,
+            "path": os.path.join(ckpt_dir, fname),
+            "opt": m.group("opt"),
+            "rho": float(m.group("rho")),
+            "seed": int(m.group("seed")),
+        }
+        if is_reparam:
+            entry["alpha"] = float(m.group("alpha"))
+        entries.append(entry)
+    return entries
+
+
+def resolve_out_dir(results_path: str, out_dir: str | None) -> str:
+    """Return out_dir, defaulting to a 'plots/' subdirectory beside results_path."""
+    if out_dir is None:
+        out_dir = os.path.join(os.path.dirname(results_path) or ".", "plots")
+    os.makedirs(out_dir, exist_ok=True)
+    return out_dir
+
+
+def free_gpu_resources() -> None:
+    """Run garbage collection and clear the CUDA memory cache."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def make_run_id(model: str, opt_type: str, rho: float, seed: int, suffix: str = "") -> str:

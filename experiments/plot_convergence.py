@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import sys
 import yaml
@@ -20,18 +19,11 @@ from src.analysis.metrics import (
     flops_to_threshold,
     wallclock_to_threshold,
 )
+from experiments.utils import OPT_STYLE, load_results
 
 # Accuracy thresholds for convergence comparison (as % of best test accuracy achieved by any optimizer)
 THRESHOLDS = [0.90, 0.95, 0.99]
 THRESHOLD_LABELS = ["90%", "95%", "99%"]
-
-# Plotly Colormap for optimizers
-OPT_STYLE: dict[str, dict] = {
-    "sgd":  {"color": "#9E9E9E", "label": "SGD"},
-    "sam":  {"color": "#2A93E9", "label": "SAM"},
-    "asam": {"color": "#FBB671", "label": "ASAM"},
-    "msam": {"color": "#399E8D", "label": "M-SAM"},
-}
 
 SAM_FAMILY = {"sam", "asam", "msam"}
 
@@ -69,12 +61,6 @@ def compute_flops_per_epoch(opt_name: str, macs_per_sample: float, cfg: dict) ->
     if opt_name in SAM_FAMILY:
         return 2.0 * sgd_epoch_flops
     return sgd_epoch_flops
-
-
-def load_results(path: str) -> list[dict]:
-    """Load results JSON from path."""
-    with open(path) as f:
-        return json.load(f)
 
 
 def best_rho_entries(data: list[dict]) -> dict[str, dict]:
