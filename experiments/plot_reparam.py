@@ -100,10 +100,14 @@ def plot_accuracy_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> N
     for opt in OPT_ORDER:
         style = OPT_STYLE.get(opt, {"color": "#000", "symbol": "circle", "label": opt})
         accs, sems = [], []
+        min_acc, max_acc = float("inf"), float("-inf")
         for alpha in alphas:
             entry = lookup_agg(agg, opt, alpha)
             accs.append(entry["test_acc_mean"] if entry else None)
             sems.append(entry["test_acc_sem"] if entry else None)
+            if entry:
+                min_acc = min(min_acc, entry["test_acc_mean"])
+                max_acc = max(max_acc, entry["test_acc_mean"])
 
         if all(a is None for a in accs):
             # skip optimizers with no data
@@ -132,14 +136,14 @@ def plot_accuracy_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> N
         width=800,
         height=500,
     )
-    fig.update_yaxes(range=[0.94, 0.96])  # accuracy is always in [0, 1]
+    fig.update_yaxes(range=[min_acc - 0.01, max_acc + 0.01]) # Zoom in on the accuracy range for better visibility
 
     path = os.path.join(out_dir, "reparam_accuracy.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "reparam_accuracy.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def plot_gen_gap_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> None:
@@ -186,10 +190,10 @@ def plot_gen_gap_vs_alpha(agg: list[dict], out_dir: str, model_label: str) -> No
 
     path = os.path.join(out_dir, "reparam_gen_gap.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "reparam_gen_gap.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def main(results_path: str, out_dir: str | None = None) -> None:

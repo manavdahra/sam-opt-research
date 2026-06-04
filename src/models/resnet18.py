@@ -7,9 +7,9 @@ def get_resnet18(num_classes: int = 10) -> nn.Module:
     """ResNet-18 adapted for CIFAR-10.
 
     Modifications vs. the ImageNet variant:
-    - First conv: 7x7 stride-2 → 3x3 stride-1
+    - First conv: 7x7 stride-2 at 3x3 stride-1
     - Removes the initial MaxPool layer
-    - Final FC: 512 → num_classes
+    - Final FC: 512 at num_classes
     """
     model = tvm.resnet18(weights=None, num_classes=num_classes)
     # Adapt stem for 32x32 inputs

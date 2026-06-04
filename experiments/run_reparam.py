@@ -71,7 +71,7 @@ def run_single(
     """Save checkpoints and results for this run."""
     run_id = make_run_id(cfg["model"], opt_type, rho, seed, suffix=f"alpha{alpha}")
     run_dir = write_run_dir(runs_dir, run_id, cfg, history, model.state_dict())
-    print(f"Run artefacts saved → {run_dir}")
+    print(f"Run artefacts saved at {run_dir}")
 
     """Save a checkpoint of the final model state dict for this run in the experiment's checkpoints directory, with a descriptive filename for easy lookup later."""
     ckpt_dir = os.path.join(experiments_dir, "reparam", cfg["model"], "checkpoints")

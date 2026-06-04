@@ -4,12 +4,12 @@ Re-exports the model-specific functions and provides a unified
 ``apply_reparam`` dispatcher used by experiment scripts.
 
 ResNet-18 (exact):
-    ReLU is 1-homogeneous → scaling BN1/conv1 output by alpha and compensating
+    ReLU is 1-homogeneous at scaling BN1/conv1 output by alpha and compensating
     conv2's input by 1/alpha preserves the network function exactly.
 
 ViT-B/32 (exact):
     Scales ln_2 affine parameters (gamma, beta) by alpha and mlp.linear1.weight by 1/alpha.
-    The transform crosses only the linear LayerNorm → Linear1 boundary;
+    The transform crosses only the linear LayerNorm at Linear1 boundary;
     GELU is never touched, so no homogeneity assumption is required.
 """
 from __future__ import annotations
@@ -38,7 +38,7 @@ def apply_reparam(model: nn.Module, model_name: str, alpha: float) -> None:
       Exact because ReLU is 1-homogeneous.
     - ViT-B/32: scales ln_2 affine params (gamma, beta) by alpha and mlp.linear1.weight
       by 1/alpha.  Exact because the transform crosses only a linear boundary
-      (LayerNorm → Linear); GELU is never touched.
+      (LayerNorm at Linear); GELU is never touched.
 
     Args:
         model: Model instance (output of ``get_resnet18`` or ``get_vit_b_32``).

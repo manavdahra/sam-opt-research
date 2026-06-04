@@ -53,8 +53,8 @@ def train_one_epoch(
     """Run one training epoch.
 
     For SAM-family optimizers the loss is evaluated twice per batch:
-      1. forward + backward → first_step (perturb)
-      2. forward + backward → second_step (restore + update)
+      1. forward + backward at first_step (perturb)
+      2. forward + backward at second_step (restore + update)
 
     Args:
         amp_dtype: If set (e.g. torch.bfloat16), wraps forward passes with

@@ -10,7 +10,7 @@ runs_dir: ./results/resnet18/runs
 experiments_dir: ./results/resnet18/experiments
 num_workers: 4
 resize: null
-max_samples: 20
+max_samples: null
 
 alpha_values: [5.0]
 

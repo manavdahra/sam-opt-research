@@ -90,7 +90,7 @@ def best_rho_entries(data: list[dict]) -> dict[str, dict]:
     return best
 
 
-def acc_curves(entry: dict) -> list[list[float]]:
+def _acc_curves(entry: dict) -> list[list[float]]:
     """Return per-seed train_acc curves from per_seed history lists."""
     curves = []
     for seed_result in entry["per_seed"]:
@@ -100,7 +100,7 @@ def acc_curves(entry: dict) -> list[list[float]]:
     return curves
 
 
-def time_curves(entry: dict) -> list[list[float]]:
+def _time_curves(entry: dict) -> list[list[float]]:
     """Return per-seed elapsed_sec curves from per_seed history lists."""
     curves = []
     for seed_result in entry["per_seed"]:
@@ -121,7 +121,7 @@ def build_figure(
     Panel 3: Seconds to threshold
     """
     opt_order = [o for o in ("sgd", "sam", "asam", "msam") if o in best]
-    has_wallclock = any(time_curves(best[o]) for o in opt_order)
+    has_wallclock = any(_time_curves(best[o]) for o in opt_order)
     n_panels = 3 if has_wallclock else 2
     panel_titles = ["Epochs to threshold", "GFLOPs to threshold"]
     if has_wallclock:
@@ -137,8 +137,8 @@ def build_figure(
         entry = best[opt]
         style = OPT_STYLE.get(opt, {"color": "#000000", "label": opt.upper()})
         flops_epoch = compute_flops_per_epoch(opt, macs_per_sample, cfg)
-        acc_curves = acc_curves(entry)
-        time_curves = time_curves(entry)
+        acc_curves = _acc_curves(entry)
+        time_curves = _time_curves(entry)
 
         epochs_vals: list[float | None] = []
         flops_vals: list[float | None] = []
@@ -240,7 +240,7 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
     macs_per_sample = estimate_macs_per_sample(cfg)
     print(f"MACs per sample: {macs_per_sample / 1e6:.0f} M")
 
-    acc_available = any(acc_curves(e) for e in best.values())
+    acc_available = any(_acc_curves(e) for e in best.values())
     if not acc_available:
         raise ValueError(
              "No per-epoch accuracy curves found in results JSON.\n"
@@ -253,7 +253,7 @@ def main(results_path: str, out_dir: str, config_path: str | None) -> None:
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "convergence.html")
     fig.write_html(out_path)
-    print("\nPlots saved.")
+    print(f"\nPlots saved at {out_path}")
 
 
 if __name__ == "__main__":

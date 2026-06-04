@@ -102,7 +102,7 @@ def main() -> None:
         model = baseline_cfg["model"]
 
         baseline_path = write_config(baseline_cfg, args.work_dir, "_baseline")
-        print(f"[{model}] Smoke baseline config written → {baseline_path}")
+        print(f"[{model}] Smoke baseline config written at {baseline_path}")
         print(f"[{model}] Running baseline smoke sweep...")
         run_baseline.main(str(baseline_path))
 
@@ -115,7 +115,7 @@ def main() -> None:
         run_flatness.main(str(baseline_path), None, args.seed)
 
         reparam_path = write_config(reparam_cfg, args.work_dir, "_reparam")
-        print(f"[{model}] Smoke reparam config written → {reparam_path}")
+        print(f"[{model}] Smoke reparam config written at {reparam_path}")
         print(f"[{model}] Running reparam smoke sweep...")
         run_reparam.main(str(reparam_path))
 

@@ -264,7 +264,7 @@ def plot_landscape_comparison(landscape: dict[str, tuple], out_dir: str) -> None
     )
     path = os.path.join(out_dir, "landscape_all.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
 
 
 def plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
@@ -329,7 +329,7 @@ def plot_landscape_best(landscape: dict[str, tuple], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "landscape_best.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
 
 
 if __name__ == "__main__":

@@ -52,10 +52,10 @@ def plot_sharpness_bars(sharpness: dict[str, float], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "sharpness_bars.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "sharpness_bars.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
@@ -95,10 +95,10 @@ def plot_sharpness_vs_rho(sharpness: dict[str, float], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "sharpness_vs_rho.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "sharpness_vs_rho.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def plot_all(sharpness: dict[str, float], out_dir: str) -> None:

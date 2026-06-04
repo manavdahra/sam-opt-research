@@ -67,11 +67,19 @@ def plot_accuracy_vs_rho(data: list[dict], out_dir: str) -> None:
             marker=dict(color=style["color"], size=8, symbol=style["symbol"]),
         ))
 
+    yaxis_range = []
+    if all(summary(s)["test_acc_mean"] for s in data):
+        acc_values = [summary(s)["test_acc_mean"] for s in data]
+        acc_min = min(acc_values)
+        acc_max = max(acc_values)
+        margin = (acc_max - acc_min) * 0.1
+        yaxis_range = [max(0.0, acc_min - margin), min(1.0, acc_max + margin)]
+
     fig.update_layout(
         title="Test Accuracy vs Perturbation Radius (ResNet-18 / CIFAR-10)",
         xaxis_title="Perturbation radius rho",
         yaxis_title="Test accuracy",
-        yaxis=dict(range=[0.95, 0.97], tickformat=".2f"),
+        yaxis=dict(range=yaxis_range, tickformat=".2f"),
         legend=dict(x=1.0, y=1.0, xanchor="right", yanchor="top", font=dict(size=12)),
         font=dict(size=16),
         title_font=dict(size=18),
@@ -80,10 +88,10 @@ def plot_accuracy_vs_rho(data: list[dict], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "baseline_accuracy.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "baseline_accuracy.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def plot_gen_gap_vs_rho(data: list[dict], out_dir: str) -> None:
@@ -159,10 +167,10 @@ def plot_gen_gap_vs_rho(data: list[dict], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "baseline_gen_gap.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "baseline_gen_gap.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 
 def plot_summary_vs_rho(data: list[dict], out_dir: str) -> None:
@@ -203,10 +211,10 @@ def plot_summary_vs_rho(data: list[dict], out_dir: str) -> None:
     )
     path = os.path.join(out_dir, "baseline_summary.html")
     fig.write_html(path)
-    print(f"Saved → {path}")
+    print(f"Saved at {path}")
     png_path = os.path.join(out_dir, "baseline_summary.png")
     fig.write_image(png_path, width=800, height=500, scale=2)
-    print(f"Saved → {png_path}")
+    print(f"Saved at {png_path}")
 
 def main(results_path: str, out_dir: str | None = None) -> None:
     """Produces three interactive HTML figures saved alongside the JSON:
